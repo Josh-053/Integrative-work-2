@@ -1,0 +1,64 @@
+---
+title: "Integrative-work-2"
+Authors: Joshua, Ali Kazim, Ante, Mike, Rawlings
+format: html
+editor: visual
+---
+
+```{r}
+CEF <- read.table("IW2_Dataset_003_2526.txt", 
+                  sep = " ",        # space-separated
+                  na.strings = ".", # treat "." as NA
+                  header = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+```{r}
+CEF <- CEF %>%
+  mutate(BW = as.numeric(BW),
+         ALB = as.numeric(ALB),
+         eGFR = as.numeric(eGFR),
+         DVID = as.integer(CONC_ID),
+         EVID = case_when(
+           is.na(CONC) & DOSE!=0 ~ 1,
+           CONC>=0 ~ 0,
+           is.na(CONC) & DOSE==0 ~ 2))
+
+# CEF$ALBgL = CEF$ALB * 66500 * 0.001 # 65000 g/L; ALB (mmol/L or 1E-3 mol/L)
+# CEF$AMT = CEF$DOSE * 600 / 1000 # 600 g/mol; mmol = 1E-3 mol; AMT in g
+# CEF$DV = CEF$CONC * 600 / 1000 # DV in g/L
+
+write.table(CEF, file = "dataset.txt", quote = FALSE, sep = " ", na = ".")
+```
+
+```{r}
+## check %BLQ
+conc1 <- na.omit(CEF$CONC[CEF$CONC_ID==1]) # omit missing values from the concentrations
+LLOQ1 <- 0.001 # given: LLOQ = 0.001 mmol/L for total conc.
+perc_BLQ1 <- mean(conc1 < LLOQ1) * 100
+perc_BLQ1
+
+conc2 <- na.omit(CEF$CONC[CEF$CONC_ID==2])
+LLOQ2 <- 0.0001 # given: LLOQ = 0.0001 mmol/L for unbound conc.
+perc_BLQ2 <- mean(conc2 < LLOQ2) * 100
+perc_BLQ2
+```
+
+No missing data was observed below LLOQ!
+-> ask about LLOQ to verify with Emanuel
+
+```{r}
+ggplot(CEF,
+       aes(x = eGFR,
+           y = SCR)) +
+  geom_point(size = 0.5) +
+  stat_summary(line = "mean")
+```
+
+ask emanuel about PR (ID = 7, PR goes from 1 to 0 and 0 to 1)
+-> healed or not, 
+ask emanuel about sex: pk-pattern shows inverted observations from phase I
+  -> body weight, eGFR

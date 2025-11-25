@@ -1,0 +1,16 @@
+[PROPERTIES]
+covariateviewer%3A%3A0\colSelection=AGE, ALB, BW, SCR, eGFR
+covariateviewer%3A%3A0\rowSelection=AGE, ALB, BW, SCR, eGFR
+outputplot%3Ay1%3A0\obsLines=false
+outputplot%3Ay1%3A0\obsMean=true
+outputplot%3Ay1%3A0\yLog=true
+residualsscatter%3Ay1%3A0\empirical=true
+residualsscatter%3Ay1%3A0\piPercentile=true
+residualsscatter%3Ay1%3A0\theoretical=true
+vpc%3Ay1%3A0\piecewiseLinear=false
+
+[SETTINGS]
+outputplot%3Ay1%3A0\fixedNbBins=8
+outputplot%3Ay1%3A0\isNumberOfBinsFixed=true
+outputplot%3Ay1%3A0\timeAfterLastDose=true
+vpc%3Ay1%3A0\timeAfterLastDose=true

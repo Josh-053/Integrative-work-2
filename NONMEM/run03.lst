@@ -1,11 +1,11 @@
-di 25 nov 2025 14:00:02 CET
-;; 1. Based on: run01
-;; 2. Description: CeftriaxPro Base Model, edited theta ranges
+wo 26 nov 2025 10:17:05 CET
+;; 1. Based on: run00
+;; 2. Description: CeftriaxPro Base Model, eGFR ~ CL
 ;; x1. TEAM2
 ;; 2025-11-24
 $PROBLEM    CeftriaxPro Base Model Development
-$INPUT      ID TIME DOSE=AMT RATE CONC=DV CONC_ID=DROP BW SEX ALB SCR
-            eGFR AGE ETHNI PR DVID EVID
+$INPUT      ID TIME DOSE=AMT RATE CONC=DV CONC_ID BW SEX ALB SCR eGFR
+            AGE ETHNI PR DVID EVID
 $DATA      dataset.csv IGNORE=@
 $SUBROUTINE ADVAN3 ;; 2-compartment model
             TRANS4 ;; CL,V1,V2,Q
@@ -24,7 +24,8 @@ TVV2 = THETA(4)
   S2 = V1/1                ;; scale prediction based on DOSE (mmol) and DV (mmol/L)
 
 $ERROR
-Y=F*(1+EPS(1))+EPS(2);; combined: proportional = EPS(1), additive = EPS(2)
+IPRED=F
+Y=IPRED*(1+EPS(1))+EPS(2);; combined: proportional = EPS(1), additive = EPS(2)
 
 $THETA  (0,1.16,3.26) ; ; From Telles et al. (1)
  (0,1) ; _; covariate effect eGFR ~ CL
@@ -46,8 +47,8 @@ $ESTIMATION METHOD=1 ;; FOCE
  ;; second derivatives using -2log(likelihood),blank means sandwich method
 $COVARIANCE
  ;; output table
-$TABLE      ID TIME DV DVID EVID PRED WRES RES CWRES CL V1 V2 Q K K12
-            K21 SEX ETHNI BW ALB SCR eGFR AGE NOPRINT ONEHEADER
+$TABLE      ID TIME DV DVID EVID PRED IPRED WRES RES CWRES CL V1 V2 Q
+            K K12 K21 SEX ETHNI BW ALB SCR eGFR AGE NOPRINT ONEHEADER
             FILE=run02
 
 
@@ -63,8 +64,8 @@ Note: Analytical 2nd Derivatives are constructed in FSUBS but are never used.
 
 License Registered to: Erwin DREESEN KU Leuven
 Expiration Date:    25 JAN 2026
-Current Date:       25 NOV 2025
-Days until program expires :  65
+Current Date:       26 NOV 2025
+Days until program expires :  64
 1NONLINEAR MIXED EFFECTS MODEL PROGRAM (NONMEM) VERSION 7.6.0 (nm760)
  ORIGINALLY DEVELOPED BY STUART BEAL, LEWIS SHEINER, AND ALISON BOECKMANN
  CURRENT DEVELOPERS ARE ROBERT BAUER, ICON DEVELOPMENT SOLUTIONS,
@@ -78,18 +79,18 @@ Days until program expires :  65
  THIS UNIT TO BE REWOUND:        NO
  CREATE/ADD TO FDATA.csv:        YES
  NO. OF DATA RECS IN DATA SET:     1519
- NO. OF DATA ITEMS IN DATA SET:  16
+ NO. OF DATA ITEMS IN DATA SET:  17
  ID DATA ITEM IS DATA ITEM NO.:   1
  DEP VARIABLE IS DATA ITEM NO.:   5
- MDV DATA ITEM IS DATA ITEM NO.: 16
+ MDV DATA ITEM IS DATA ITEM NO.: 17
 0INDICES PASSED TO SUBROUTINE PRED:
-  15   2   3   4   0   0   0   0   0   0   0
+  16   2   3   4   0   0   0   0   0   0   0
 0LABELS FOR DATA ITEMS:
- ID TIME DOSE RATE CONC BW SEX ALB SCR eGFR AGE ETHNI PR DVID EVID MDV
+ ID TIME DOSE RATE CONC CONC_ID BW SEX ALB SCR eGFR AGE ETHNI PR DVID EVID MDV
 0(NONBLANK) LABELS FOR PRED-DEFINED ITEMS:
- CL V1 V2 Q K K12 K21
+ CL V1 V2 Q K K12 K21 IPRED
 0FORMAT FOR DATA:
- (E2.0,E7.0,E8.0,E16.0,E20.0,E16.0,E1.0/2E17.0,E16.0,E2.0,4E1.0,1F2.0)
+ (E2.0,E7.0,E8.0,E16.0,E20.0,E1.0,E16.0,E1.0/2E17.0,E16.0,5E2.0,1F2.0)
 
  TOT. NO. OF OBS RECS:      992
  TOT. NO. OF INDIVIDUALS:       33
@@ -153,7 +154,7 @@ Days until program expires :  65
  RFORMAT:
  FIXED_EFFECT_ETAS:
 0USER-CHOSEN ITEMS:
- ID TIME CONC DVID EVID CWRES CL V1 V2 Q K K12 K21 SEX ETHNI BW ALB SCR eGFR AGE
+ ID TIME CONC DVID EVID IPRED CWRES CL V1 V2 Q K K12 K21 SEX ETHNI BW ALB SCR eGFR AGE
 1DOUBLE PRECISION PREDPP VERSION 7.6.0 (nm760)
 
  TWO COMPARTMENT MODEL (ADVAN3)
@@ -182,7 +183,7 @@ Days until program expires :  65
              * PARAMETER IS NOT SUPPLIED BY PK SUBROUTINE;
                WILL DEFAULT TO ONE IF APPLICABLE
 0DATA ITEM INDICES USED BY PRED ARE:
-   EVENT ID DATA ITEM IS DATA ITEM NO.:     15
+   EVENT ID DATA ITEM IS DATA ITEM NO.:     16
    TIME DATA ITEM IS DATA ITEM NO.:          2
    DOSE AMOUNT DATA ITEM IS DATA ITEM NO.:   3
    DOSE RATE DATA ITEM IS DATA ITEM NO.:     4
@@ -363,8 +364,8 @@ Days until program expires :  65
  TOTAL EFFECTIVE ETAS (NIND*NETA):                           132
   
  #TERE:
- Elapsed estimation  time in seconds:    12.61
- Elapsed postprocess time in seconds:     0.08
+ Elapsed estimation  time in seconds:    12.36
+ Elapsed postprocess time in seconds:     0.06
 1
  
  
@@ -482,6 +483,6 @@ Days until program expires :  65
 +        0.00E+00  4.10E-03
  
  Elapsed finaloutput time in seconds:     0.05
- #CPUT: Total CPU Time in Seconds,       12.697
+ #CPUT: Total CPU Time in Seconds,       12.431
 Stop Time:
-di 25 nov 2025 14:00:20 CET
+wo 26 nov 2025 10:17:23 CET

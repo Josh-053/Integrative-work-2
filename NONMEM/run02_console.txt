@@ -14,8 +14,8 @@ Building NONMEM Executable
 Starting nonmem execution ...
 License Registered to: Erwin DREESEN KU Leuven
 Expiration Date:    25 JAN 2026
-Current Date:       25 NOV 2025
-Days until program expires :  65
+Current Date:       26 NOV 2025
+Days until program expires :  64
 
 
  First Order Conditional Estimation with Interaction
@@ -66,7 +66,7 @@ Days until program expires :  65
 
  GRADIENT:   4.1096E+01  0.0000E+00 -2.6771E+01  0.0000E+00  4.4274E+01  0.0000E+00  0.0000E+00  0.0000E+00  1.8679E+01  8.8002E+00
 
- Elapsed estimation  time in seconds:     5.89
- Elapsed postprocess time in seconds:     0.07
+ Elapsed estimation  time in seconds:     6.27
+ Elapsed postprocess time in seconds:     0.06
  Elapsed finaloutput time in seconds:     0.05
 Done with nonmem execution

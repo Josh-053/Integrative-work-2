@@ -1,0 +1,2 @@
+
+NONMEM run failed. Check the lst-file in NM_run1 for errors

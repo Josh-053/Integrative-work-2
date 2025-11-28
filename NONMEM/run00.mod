@@ -25,21 +25,20 @@ TVCL = THETA(1)
   S2 = V/1                ;; scale prediction based on DOSE (mmol) and DV (mmol/L)
 
 $THETA; explore dataset & literature, SAME order as PK
-(0, 1)  ;; based on phase 1 trial
+(0, 7)  ;; based on phase 1 trial
 (0, 70) ;; based on phase 1 trial
 
 $OMEGA ;; variance covariance matrix for interindividual variability
-1;; not yet known, outcome picked for next models, put a relatively small number
-1;; not yet known, outcome picked for next models
+0.05;; not yet known, outcome picked for next models, put a relatively small number
+0.05;; not yet known, outcome picked for next models
 
 $SIGMA;; variance covariance matrix for residual error
-1 ;; EPS(1) for proportional error, not yet known, outcome picked for next models
-1 ;; EPS(2) for additive error, not yet known, outcome picked for next models
+0.1 ;; EPS(1) for proportional error, not yet known, outcome picked for next models
 
 $ERROR
 IPRED = F
-Y = IPRED + IPRED*ERR(1) + ERR(2)
-W = SQRT((IPRED*SQRT(SIGMA(1,1)))**2 + (SQRT(SIGMA(2,2)))**2)
+Y = IPRED + IPRED*ERR(1)
+W = SQRT((IPRED*SQRT(SIGMA(1,1)))**2)
 IRES  = CONC - IPRED
 IWRES = IRES / W
 
@@ -49,8 +48,9 @@ MAXEVAL=9999
 SIG=3
 PRINT=5
 
-$COV PRINT=E;; second derivatives using -2log(likelihood), blank means sandwich method
+;;$COV PRINT=E;; second derivatives using -2log(likelihood), blank means sandwich method
 
+$COV UNCONDITIONAL MATRIX=S
 $TABLE ;; output table for standard outcomes
 ID TIME DV EVID PRED IPRED WRES RES CWRES NOPRINT ONEHEADER FILE=run00_sdtab
 

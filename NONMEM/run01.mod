@@ -38,19 +38,19 @@ IRES  = CONC - IPRED
 IWRES = IRES / W
 
 $THETA; explore dataset & literature, SAME order as PK
-(0, 1.16, 6.52)  ;; From Telles et al. (1), upper bound doubled
-(0, 10.04, 45.04);; From Telles et al. (1), upper bound doubled
+(0, 1.16, 3.26)  ;; From Telles et al. (1), max range doubled
+(0, 10.04, 22.52);; From Telles et al. (1), max range doubled
 (0, 9.54, 38.16) ;; From Simon et al. (2), upper bound = initial value x4 to account for ...
 (0, 10.8, 44.32) ;; ... physiological differences
 
 $OMEGA;; variance covariance matrix for interindividual variability
-1
-1
+0.00938 ;; taken from run00
+0.00306 ;; taken from run00
 1
 1
 
 $SIGMA;; variance covariance matrix for residual error
-1
+0.1
 
 $EST
 METHOD=1 INTERACTION;; FOCE-I

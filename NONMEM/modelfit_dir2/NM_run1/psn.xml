@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="ASCII"?>
+<!DOCTYPE nm:output SYSTEM "output.dtd">
+<nm:output
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://namespaces.oreilly.com/xmlnut/address output.xsd"
+xmlns:nm="http://namespaces.oreilly.com/xmlnut/address"
+>
+<nm:start_datetime>2025-11-28T09:56:29.982</nm:start_datetime>
+<nm:control_stream><![CDATA[
+;; 1. Based on: run00
+;; 2. Description: CeftriaxPro Base Model - One Compartment
+;; x1. TEAM2
+;; 2025-11-24
+$PROBLEM    CeftriaxPro Base Model Development
+$INPUT      ID TIME DOSE=AMT RATE CONC=DV CONC_ID BW SEX ALB SCR eGFR
+            AGE ETHNI PR DVID EVID
+$DATA      dataset.csv IGNORE=@ IGNORE=(CONC_ID.EQ.1)
+ ;; ignores rows showing total plasma concentration
+$SUBROUTINE ADVAN1 ;; 1-compartment model
+            TRANS2 ;; CL,V
+$PK
+TVCL = THETA(1)
+  CL = TVCL * EXP(ETA(1))
+ TVV = THETA(2)
+   V = TVV * EXP(ETA(2))
+   K = CL/V
+  S2 = V/1                ;; scale prediction based on DOSE (mmol) and DV (mmol/L)
+
+$THETA  (0,1.16,3.26) ; ; From Telles et al. (1),max range doubled
+ (0,10.04,22.52) ; _; From Telles et al. (1),max range doubled
+; explore dataset & literature, SAME order as PK
+$OMEGA  0.1  ;         __  ; not yet known, outcome picked for next models
+ 0.1  ;        ___  ; not yet known, outcome picked for next models
+ ;; variance covariance matrix for interindividual variability
+$SIGMA  0.1  ;       ____  ; EPS(1) for proportional error, not yet known, outcome picked for next models
+;; variance covariance matrix for residual error
+$ERROR
+IPRED=F
+Y=IPRED*(1+EPS(1)) ;; proportional = EPS(1)
+W = SQRT((IPRED*SQRT(SIGMA(1,1)))**2)
+IRES  = CONC - IPRED
+IWRES = IRES / W
+
+$ESTIMATION METHOD=1 INTERACTION ;; FOCE-I
+            MAXEVAL=9999 SIG=3 PRINT=5 NOABORT POSTHOC
+ ;; second derivatives using -2log(likelihood),blank means sandwich method
+$COVARIANCE
+ ;; output table for standard outcomes
+$TABLE      ID TIME DV EVID PRED IPRED WRES RES CWRES NOPRINT
+            ONEHEADER FILE=run00_sdtab
+ ;; output table for PK parameters
+$TABLE      ID CL V K NOPRINT NOAPPEND ONEHEADER FILE=run00_patab
+ ;; output table for categorical covariates
+$TABLE      ID SEX ETHNI NOPRINT NOAPPEND ONEHEADER FILE=run00_catab
+ ;; output table for continuous covariates
+$TABLE      ID BW ALB SCR eGFR AGE NOPRINT NOAPPEND ONEHEADER
+            FILE=run00_cotab
+
+]]></nm:control_stream>
+<nm:nmtran><![CDATA[
+
+ WARNINGS AND ERRORS (IF ANY) FOR PROBLEM    1
+
+ (WARNING  2) NM-TRAN INFERS THAT THE DATA ARE POPULATION.
+
+ (DATA WARNING   5) RECORD         2, DATA ITEM   5, CONTENTS: 0.00262095662582655
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD         4, DATA ITEM   5, CONTENTS: 0.0328495105936886
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD         5, DATA ITEM   5, CONTENTS: 0.0439163240386343
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD         6, DATA ITEM   5, CONTENTS: 0.028352189978581
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD         7, DATA ITEM   5, CONTENTS: 0.0177079189524595
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD         8, DATA ITEM   5, CONTENTS: 0.0154381466977758
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD         9, DATA ITEM   5, CONTENTS: 0.00646040271775925
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD        10, DATA ITEM   5, CONTENTS: 0.0034264446006449
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD        15, DATA ITEM   5, CONTENTS: 0.00410176687593739
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD        17, DATA ITEM   5, CONTENTS: 0.0525473598257286
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD        18, DATA ITEM   5, CONTENTS: 0.0387065829157067
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD        19, DATA ITEM   5, CONTENTS: 0.0254051807234774
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD        20, DATA ITEM   5, CONTENTS: 0.0199738699445427
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD        21, DATA ITEM   5, CONTENTS: 0.013610142581054
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD        23, DATA ITEM   5, CONTENTS: 0.00506347838153697
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD        35, DATA ITEM   5, CONTENTS: 0.0245993468004901
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD        36, DATA ITEM   5, CONTENTS: 0.032075620600238
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD        37, DATA ITEM   5, CONTENTS: 0.0208526268545728
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD        38, DATA ITEM   5, CONTENTS: 0.0144033200601406
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1
+
+ (DATA WARNING   5) RECORD        39, DATA ITEM   5, CONTENTS: 0.00680159745432092
+ THE DV DATA ITEM IS POSITIVE, BUT THE MDV DATA ITEM IS 1*
+
+ (WARNING  79) SIGMA IS USED ON THE RIGHT. WITH A SUBSEQUENT RUN, IF AN
+ INITIAL ESTIMATE OF A DIAGONAL BLOCK OF SIGMA IS TO BE COMPUTED BY
+ NONMEM, THAT BLOCK WILL BE SET TO AN IDENTITY MATRIX DURING THAT
+ COMPUTATION. THIS COULD LEAD TO AN ARITHMETIC EXCEPTION.*
+
+ * THE MAXIMUM NUMBER OF WARNINGS OF ONE OR MORE TYPES WAS REACHED.
+ IT IS POSSIBLE THAT SOME WARNING MESSAGES WERE SUPPRESSED.
+
+Note: Analytical 2nd Derivatives are constructed in FSUBS but are never used.
+      You may insert $ABBR DERIV2=NO after the first $PROB to save FSUBS construction and compilation time
+
+]]></nm:nmtran>
+<nm:nonmem nm:version='7.6.0 (nm760)'>
+<nm:license_information><![CDATA[
+License Registered to: Erwin DREESEN KU Leuven
+Expiration Date:    25 JAN 2026
+Current Date:       28 NOV 2025
+Days until program expires :  62
+]]></nm:license_information>
+<nm:program_information><![CDATA[
+1NONLINEAR MIXED EFFECTS MODEL PROGRAM (NONMEM) VERSION 7.6.0 (nm760)
+ ORIGINALLY DEVELOPED BY STUART BEAL, LEWIS SHEINER, AND ALISON BOECKMANN
+ CURRENT DEVELOPERS ARE ROBERT BAUER, ICON DEVELOPMENT SOLUTIONS,
+ AND ALISON BOECKMANN. IMPLEMENTATION, EFFICIENCY, AND STANDARDIZATION
+ PERFORMED BY NOUS INFOSYSTEMS.
+]]></nm:program_information>
+<nm:problem nm:number='1' nm:subproblem='0' nm:superproblem1='0' nm:iteration1='0' nm:superproblem2='0' nm:iteration2='0'>
+<nm:problem_title>CeftriaxPro Base Model Development</nm:problem_title>
+<nm:problem_information><![CDATA[
+
+ PROBLEM NO.:         1
+ CeftriaxPro Base Model Development
+0DATA CHECKOUT RUN:              NO
+ DATA SET LOCATED ON UNIT NO.:    2
+ THIS UNIT TO BE REWOUND:        NO
+ CREATE/ADD TO FDATA.csv:        YES
+ NO. OF DATA RECS IN DATA SET:     1023
+ NO. OF DATA ITEMS IN DATA SET:  17
+ ID DATA ITEM IS DATA ITEM NO.:   1
+ DEP VARIABLE IS DATA ITEM NO.:   5
+ MDV DATA ITEM IS DATA ITEM NO.: 17
+0INDICES PASSED TO SUBROUTINE PRED:
+  16   2   3   4   0   0   0   0   0   0   0
+0LABELS FOR DATA ITEMS:
+ ID TIME DOSE RATE CONC CONC_ID BW SEX ALB SCR eGFR AGE ETHNI PR DVID EVID MDV
+0(NONBLANK) LABELS FOR PRED-DEFINED ITEMS:
+ CL V K IPRED
+0FORMAT FOR DATA:
+ (E2.0,E7.0,E8.0,E16.0,E20.0,E1.0,E16.0,E1.0/2E17.0,E16.0,5E2.0,1F2.0)
+
+ TOT. NO. OF OBS RECS:        0
+ TOT. NO. OF INDIVIDUALS:       33
+0LENGTH OF THETA:   2
+0DEFAULT THETA BOUNDARY TEST OMITTED:    NO
+0OMEGA HAS SIMPLE DIAGONAL FORM WITH DIMENSION:   2
+0DEFAULT OMEGA BOUNDARY TEST OMITTED:    NO
+0SIGMA HAS SIMPLE DIAGONAL FORM WITH DIMENSION:   1
+0DEFAULT SIGMA BOUNDARY TEST OMITTED:    NO
+0INITIAL ESTIMATE OF THETA:
+ LOWER BOUND    INITIAL EST    UPPER BOUND
+  0.0000E+00     0.1160E+01     0.3260E+01
+  0.0000E+00     0.1004E+02     0.2252E+02
+0INITIAL ESTIMATE OF OMEGA:
+ 0.1000E+00
+ 0.0000E+00   0.1000E+00
+0INITIAL ESTIMATE OF SIGMA:
+ 0.1000E+00
+0COVARIANCE STEP OMITTED:        NO
+ EIGENVLS. PRINTED:              NO
+ SPECIAL COMPUTATION:            NO
+ COMPRESSED FORMAT:              NO
+ GRADIENT METHOD USED:     NOSLOW
+ SIGDIGITS ETAHAT (SIGLO):                  -1
+ SIGDIGITS GRADIENTS (SIGL):                -1
+ EXCLUDE COV FOR FOCE (NOFCOV):              NO
+ Cholesky Transposition of R Matrix (CHOLROFF):0
+ KNUTHSUMOFF:                                -1
+ RESUME COV ANALYSIS (RESUME):               NO
+ SIR SAMPLE SIZE (SIRSAMPLE):
+ NON-LINEARLY TRANSFORM THETAS DURING COV (THBND): 1
+ PRECONDTIONING CYCLES (PRECOND):        0
+ PRECONDTIONING TYPES (PRECONDS):        TOS
+ FORCED PRECONDTIONING CYCLES (PFCOND):0
+ PRECONDTIONING TYPE (PRETYPE):        0
+ FORCED POS. DEFINITE SETTING DURING PRECONDITIONING: (FPOSDEF):0
+ SIMPLE POS. DEFINITE SETTING: (POSDEF):-1
+0TABLES STEP OMITTED:    NO
+ NO. OF TABLES:           4
+ SEED NUMBER (SEED):    11456
+ NPDTYPE:    0
+ INTERPTYPE:    0
+ RANMETHOD:             3U
+ MC SAMPLES (ESAMPLE):    300
+ WRES SQUARE ROOT TYPE (WRESCHOL): EIGENVALUE
+0-- TABLE   1 --
+0RECORDS ONLY:    ALL
+04 COLUMNS APPENDED:    YES
+ PRINTED:                NO
+ HEADERS:               ONE
+ FILE TO BE FORWARDED:   NO
+ FORMAT:                S1PE11.4
+ IDFORMAT:
+ LFORMAT:
+ RFORMAT:
+ FIXED_EFFECT_ETAS:
+0USER-CHOSEN ITEMS:
+ ID TIME CONC EVID IPRED CWRES
+0-- TABLE   2 --
+0RECORDS ONLY:    ALL
+04 COLUMNS APPENDED:    NO
+ PRINTED:                NO
+ HEADERS:               ONE
+ FILE TO BE FORWARDED:   NO
+ FORMAT:                S1PE11.4
+ IDFORMAT:
+ LFORMAT:
+ RFORMAT:
+ FIXED_EFFECT_ETAS:
+0USER-CHOSEN ITEMS:
+ ID CL V K
+0-- TABLE   3 --
+0RECORDS ONLY:    ALL
+04 COLUMNS APPENDED:    NO
+ PRINTED:                NO
+ HEADERS:               ONE
+ FILE TO BE FORWARDED:   NO
+ FORMAT:                S1PE11.4
+ IDFORMAT:
+ LFORMAT:
+ RFORMAT:
+ FIXED_EFFECT_ETAS:
+0USER-CHOSEN ITEMS:
+ ID SEX ETHNI
+0-- TABLE   4 --
+0RECORDS ONLY:    ALL
+04 COLUMNS APPENDED:    NO
+ PRINTED:                NO
+ HEADERS:               ONE
+ FILE TO BE FORWARDED:   NO
+ FORMAT:                S1PE11.4
+ IDFORMAT:
+ LFORMAT:
+ RFORMAT:
+ FIXED_EFFECT_ETAS:
+0USER-CHOSEN ITEMS:
+ ID BW ALB SCR eGFR AGE
+0WARNING: THE NUMBER OF PARAMETERS TO BE ESTIMATED
+ EXCEEDS THE NUMBER OF INDIVIDUALS WITH DATA.
+0WARNING: FOR AN ASYMPTOTIC ESTIMATE OF THE VARIANCE-COVARIANCE MATRIX
+ OF THE GRADIENT VECTOR, THE COVARIANCE STEP COMPUTES THE S MATRIX.
+ BUT WHEN THE NUMBER OF PARAMETERS TO BE ESTIMATED
+ EXCEEDS THE NUMBER OF INDIVIDUALS WITH DATA,
+ THIS MATRIX CAN BE SINGULAR AND BE A POOR ASYMPTOTIC ESTIMATE.
+1DOUBLE PRECISION PREDPP VERSION 7.6.0 (nm760)
+
+ ONE COMPARTMENT MODEL (ADVAN1)
+0MAXIMUM NO. OF BASIC PK PARAMETERS:   2
+0BASIC PK PARAMETERS (AFTER TRANSLATION):
+   ELIMINATION RATE (K) IS BASIC PK PARAMETER NO.:  1
+
+ TRANSLATOR WILL CONVERT PARAMETERS
+ CLEARANCE (CL) AND VOLUME (V) TO K (TRANS2)
+0COMPARTMENT ATTRIBUTES
+ COMPT. NO.   FUNCTION   INITIAL    ON/OFF      DOSE      DEFAULT    DEFAULT
+                         STATUS     ALLOWED    ALLOWED    FOR DOSE   FOR OBS.
+    1         CENTRAL      ON         NO         YES        YES        YES
+    2         OUTPUT       OFF        YES        NO         NO         NO
+1
+ ADDITIONAL PK PARAMETERS - ASSIGNMENT OF ROWS IN GG
+ COMPT. NO.                             INDICES
+              SCALE      BIOAVAIL.   ZERO-ORDER  ZERO-ORDER  ABSORB
+                         FRACTION    RATE        DURATION    LAG
+    1            *           *           *           *           *
+    2            3           -           -           -           -
+             - PARAMETER IS NOT ALLOWED FOR THIS MODEL
+             * PARAMETER IS NOT SUPPLIED BY PK SUBROUTINE;
+               WILL DEFAULT TO ONE IF APPLICABLE
+0DATA ITEM INDICES USED BY PRED ARE:
+   EVENT ID DATA ITEM IS DATA ITEM NO.:     16
+   TIME DATA ITEM IS DATA ITEM NO.:          2
+   DOSE AMOUNT DATA ITEM IS DATA ITEM NO.:   3
+   DOSE RATE DATA ITEM IS DATA ITEM NO.:     4
+
+0PK SUBROUTINE CALLED WITH EVERY EVENT RECORD.
+ PK SUBROUTINE NOT CALLED AT NONEVENT (ADDITIONAL OR LAGGED) DOSE TIMES.
+0ERROR SUBROUTINE CALLED WITH EVERY EVENT RECORD.
+0DATA RECORD ERROR MESSAGE FROM PRED:
+0DATA REC           2: DOSE AMOUNT IS ZERO
+0DATA REC           4: DOSE AMOUNT IS ZERO
+0DATA REC           5: DOSE AMOUNT IS ZERO
+0DATA REC           6: DOSE AMOUNT IS ZERO
+0DATA REC           7: DOSE AMOUNT IS ZERO
+0DATA REC           8: DOSE AMOUNT IS ZERO
+0DATA REC           9: DOSE AMOUNT IS ZERO
+0DATA REC          10: DOSE AMOUNT IS ZERO
+0DATA REC          15: DOSE AMOUNT IS ZERO
+0DATA REC          17: DOSE AMOUNT IS ZERO
+0DATA REC          18: DOSE AMOUNT IS ZERO
+0DATA REC          19: DOSE AMOUNT IS ZERO
+0DATA REC          20: DOSE AMOUNT IS ZERO
+0DATA REC          21: DOSE AMOUNT IS ZERO
+0DATA REC          22: DOSE AMOUNT IS ZERO
+0DATA REC          23: DOSE AMOUNT IS ZERO
+0DATA REC          33: DOSE AMOUNT IS ZERO
+0DATA REC          35: DOSE AMOUNT IS ZERO
+0DATA REC          36: DOSE AMOUNT IS ZERO
+0DATA REC          37: DOSE AMOUNT IS ZERO
+0DATA REC          38: DOSE AMOUNT IS ZERO
+0DATA REC          39: DOSE AMOUNT IS ZERO
+0DATA REC          40: DOSE AMOUNT IS ZERO
+0DATA REC          41: DOSE AMOUNT IS ZERO
+0DATA REC          46: DOSE AMOUNT IS ZERO
+0DATA REC          48: DOSE AMOUNT IS ZERO
+0DATA REC          49: DOSE AMOUNT IS ZERO
+0DATA REC          50: DOSE AMOUNT IS ZERO
+0DATA REC          51: DOSE AMOUNT IS ZERO
+0DATA REC          52: DOSE AMOUNT IS ZERO
+0DATA REC          53: DOSE AMOUNT IS ZERO
+0DATA REC          54: DOSE AMOUNT IS ZERO
+0DATA REC          64: DOSE AMOUNT IS ZERO
+0DATA REC          66: DOSE AMOUNT IS ZERO
+0DATA REC          67: DOSE AMOUNT IS ZERO
+0DATA REC          68: DOSE AMOUNT IS ZERO
+0DATA REC          69: DOSE AMOUNT IS ZERO
+0DATA REC          70: DOSE AMOUNT IS ZERO
+0DATA REC          71: DOSE AMOUNT IS ZERO
+0DATA REC          72: DOSE AMOUNT IS ZERO
+0DATA REC          77: DOSE AMOUNT IS ZERO
+0DATA REC          79: DOSE AMOUNT IS ZERO
+0DATA REC          80: DOSE AMOUNT IS ZERO
+0DATA REC          81: DOSE AMOUNT IS ZERO
+0DATA REC          82: DOSE AMOUNT IS ZERO
+0DATA REC          83: DOSE AMOUNT IS ZERO
+0DATA REC          84: DOSE AMOUNT IS ZERO
+0DATA REC          85: DOSE AMOUNT IS ZERO
+0DATA REC          95: DOSE AMOUNT IS ZERO
+0DATA REC          97: DOSE AMOUNT IS ZERO
+0DATA REC          98: DOSE AMOUNT IS ZERO
+0DATA REC          98: MAXIMUM NUMBER OF ERRORS EXCEEDED - NO MORE DATA RECORDS
+ WILL BE CHECKED
+0RUN TERMINATED BECAUSE OF ERRORS IN DATA RECORDS
+]]></nm:problem_information>
+<nm:problem_options
+ nm:data_checkout_run='no' nm:data_unit='2' nm:data_rewind='no' nm:data_fdatacsv='yes' nm:data_nrec='1023'
+ nm:data_nitems='17' nm:data_id='1' nm:data_l2='0' nm:data_dv='5' nm:data_mdv='17' nm:data_mrg='0' nm:data_raw='0'
+ nm:data_rpt='0' nm:data_sub_array1='0' nm:data_sub_array2='0' nm:data_sub_array3='0'
+ nm:data_pred_indices='16,2,3,4,0,0,0,0,0,0,0'
+ nm:data_format='(e2.0,e7.0,e8.0,e16.0,e20.0,e1.0,e16.0,e1.0/2e17.0,e16.0,5e2.0,1f2.0)' nm:data_nobs='0'
+ nm:data_nind='33' nm:data_mdv100='0' nm:nthetat='2' nm:theta_bound_test_omitted='no' nm:omega_diagdim='2'
+ nm:omega_bound_test_omitted='no' nm:sigma_diagdim='1' nm:sigma_bound_test_omitted='no' nm:cov_omitted='no'
+ nm:cov_matrix='rsr' nm:cov_eigen_print='no' nm:cov_special='no' nm:cov_compressed='no'
+ nm:cov_slow_gradient='noslow' nm:cov_siglocov='-1' nm:cov_siglcov='-1' nm:cov_tol='-1' nm:cov_atol='-1'
+ nm:cov_nofcov='no' nm:cov_cholroff='0' nm:cov_knuthsumoff='-1' nm:cov_resume='no' nm:cov_sirsample='BLANK'
+ nm:cov_thbnd='1' nm:cov_precond='0' nm:cov_preconds='tos' nm:cov_pfcond='0' nm:cov_pretype='0' nm:cov_fposdef='0'
+ nm:cov_posdef='-1' nm:tab_omitted='no' nm:tab_number='4' nm:tab_seed='11456' nm:tab_npdtype='0' nm:tab_interptype='0'
+ nm:tab_ranmethod='3u' nm:tab_esample='300' nm:tab_wres='eigenvalue' nm:tab_fixedetas_01='BLANK'
+ nm:tab_fixedetas_02='BLANK' nm:tab_fixedetas_03='BLANK' nm:tab_fixedetas_04='BLANK' nm:pred_advan='1'
+ nm:pred_evid='16' nm:pred_time='2' nm:pred_amt='3' nm:pred_rate='4'
+/>
+<nm:theta_lb>
+<nm:val nm:name='1'>0.0000000000000000</nm:val>
+<nm:val nm:name='2'>0.0000000000000000</nm:val>
+</nm:theta_lb>
+<nm:theta_in>
+<nm:val nm:name='1'>1.1599999999999999</nm:val>
+<nm:val nm:name='2'>10.039999999999999</nm:val>
+</nm:theta_in>
+<nm:theta_ub>
+<nm:val nm:name='1'>3.2599999999999998</nm:val>
+<nm:val nm:name='2'>22.520000000000000</nm:val>
+</nm:theta_ub>
+</nm:problem>
+</nm:nonmem>
+<nm:stop_datetime>2025-11-28T09:56:30.006</nm:stop_datetime>
+<nm:total_cputime>0.025</nm:total_cputime>
+</nm:output>

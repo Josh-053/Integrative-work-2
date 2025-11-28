@@ -5,7 +5,7 @@
 
 $PROBLEM CeftriaxPro Base Model Development
 
-$INPUT ID TIME DOSE=AMT RATE CONC=DV CONC_ID BW SEX ALB SCR eGFR AGE ETHNI PR DVID EVID
+$INPUT ID TIME DOSE=AMT RATE CONC=DV CONC_ID BW SEX ALB SCR eGFR AGE ETHNI PR DVID CMT MDV EVID
 
 $DATA
 dataset.csv
@@ -25,20 +25,21 @@ TVCL = THETA(1)
   S2 = V/1                ;; scale prediction based on DOSE (mmol) and DV (mmol/L)
 
 $THETA; explore dataset & literature, SAME order as PK
-(0, 1.16, 6.52)  ;; From Telles et al. (1), max range doubled
-(0, 10.04, 45.04);; From Telles et al. (1), max range doubled
+(0, 1)  ;; based on phase 1 trial
+(0, 70) ;; based on phase 1 trial
 
-$OMEGA;; variance covariance matrix for interindividual variability
-1;; not yet known, outcome picked for next models
+$OMEGA ;; variance covariance matrix for interindividual variability
+1;; not yet known, outcome picked for next models, put a relatively small number
 1;; not yet known, outcome picked for next models
 
 $SIGMA;; variance covariance matrix for residual error
 1 ;; EPS(1) for proportional error, not yet known, outcome picked for next models
+1 ;; EPS(2) for additive error, not yet known, outcome picked for next models
 
 $ERROR
-IPRED=F
-Y=IPRED*(1+EPS(1)) ;; combined: proportional = EPS(1), additive = EPS(2)
-W = SQRT((IPRED*SQRT(SIGMA(1,1)))**2)
+IPRED = F
+Y = IPRED + IPRED*ERR(1) + ERR(2)
+W = SQRT((IPRED*SQRT(SIGMA(1,1)))**2 + (SQRT(SIGMA(2,2)))**2)
 IRES  = CONC - IPRED
 IWRES = IRES / W
 
@@ -47,10 +48,8 @@ METHOD=1 INTERACTION;; FOCE-I
 MAXEVAL=9999
 SIG=3
 PRINT=5
-NOABORT
-POSTHOC	
 
-$COV   ;; second derivatives using -2log(likelihood), blank means sandwich method
+$COV PRINT=E;; second derivatives using -2log(likelihood), blank means sandwich method
 
 $TABLE ;; output table for standard outcomes
 ID TIME DV EVID PRED IPRED WRES RES CWRES NOPRINT ONEHEADER FILE=run00_sdtab

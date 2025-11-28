@@ -15,6 +15,7 @@ CEF <- read.table("IW2_Dataset_003_2526.txt",
 ```{r}
 library(tidyverse)
 library(ggplot2)
+library(patchwork)
 ```
 
 ```{r}
@@ -22,15 +23,21 @@ CEF <- CEF %>%
   mutate(BW = as.numeric(BW),
          ALB = as.numeric(ALB),
          eGFR = as.numeric(eGFR),
-         DVID = as.integer(CONC_ID)
+         DVID = as.integer(CONC_ID),
+         DVID = ifelse(is.na(CONC_ID), 0, DVID),
+         CMT = 1,
+         MDV = ifelse(is.na(CONC), 1, 0),
          EVID = case_when(
            is.na(CONC) & DOSE!=0 ~ 1,
            CONC>=0 ~ 0,
            is.na(CONC) & DOSE==0 ~ 2))
 
-# CEF <- CEF %>% group_by(ID) %>%  
-#   fill(c(BW),.direction = "downup") %>% 
-#   ungroup()
+CEF <- CEF %>% group_by(ID) %>%
+  fill(c(BW),.direction = "downup") %>%
+  fill(c(ALB),.direction = "downup") %>%
+  fill(c(SCR),.direction = "downup") %>%
+  fill(c(eGFR),.direction = "downup") %>%
+  ungroup()
 
 # CEF$ALBgL = CEF$ALB * 66500 * 0.001 # 65000 g/L; ALB (mmol/L or 1E-3 mol/L)
 # CEF$AMT = CEF$DOSE * 600 / 1000 # 600 g/mol; mmol = 1E-3 mol; AMT in g
@@ -55,6 +62,42 @@ perc_BLQ2
 ```
 
 No missing data was observed below LLOQ! -\> ask about LLOQ to verify with Emanuel
+
+```{r}
+h1 <- ggplot(CEF, aes(x = AGE)) +
+      geom_histogram(binwidth = 2,
+                     fill = "white", color = "black") +
+      labs(x = "Age (years)",
+           y = "Frequency") +
+      theme_minimal()
+h2 <- ggplot(CEF, aes(x = ALB)) +
+      geom_histogram(binwidth = 0.025,
+                     fill = "white", color = "black") +
+      labs(x = "Albumin Conc. (g/L) at Time = 0 h",
+           y = "Frequency") +
+      theme_minimal()
+h3 <- ggplot(CEF, aes(x = BW)) +
+      geom_histogram(binwidth = 4,
+                     fill = "white", color = "black") +
+      labs(x = "Body Weight (kg)",
+           y = "Frequency") +
+      theme_minimal()
+h4 <- ggplot(CEF, aes(x = SCR)) +
+      geom_histogram(binwidth = 0.1,
+                     fill = "white", color = "black") +
+      labs(x = "Serum Creatinine Conc. (mg/dL)",
+           y = "Frequency") +
+      theme_minimal()
+h6 <- ggplot(CEF, aes(x = eGFR)) +
+      geom_histogram(binwidth = 6,
+                     fill = "white", color = "black") +
+      labs(x = "eGFR (mL/min/1.73 m²)",
+           y = "Frequency")+
+      theme_minimal()
+
+h1 + h2 + h3 + h4 + h6 + plot_layout(ncol = 2)
+```
+
 
 ```{r}
 ggplot(CEF,

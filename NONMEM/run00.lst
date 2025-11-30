@@ -1,4 +1,4 @@
-vr 28 nov 2025 14:21:20 CET
+zo 30 nov 2025 13:33:51 CET
 ;; 1. Based on: run00
 ;; 2. Description: CeftriaxPro Base Model - One Compartment
 ;; x1. TEAM2
@@ -69,8 +69,8 @@ Note: Analytical 2nd Derivatives are constructed in FSUBS but are never used.
 
 License Registered to: Erwin DREESEN KU Leuven
 Expiration Date:    25 JAN 2026
-Current Date:       28 NOV 2025
-Days until program expires :  62
+Current Date:       30 NOV 2025
+Days until program expires :  60
 1NONLINEAR MIXED EFFECTS MODEL PROGRAM (NONMEM) VERSION 7.6.0 (nm760)
  ORIGINALLY DEVELOPED BY STUART BEAL, LEWIS SHEINER, AND ALISON BOECKMANN
  CURRENT DEVELOPERS ARE ROBERT BAUER, ICON DEVELOPMENT SOLUTIONS,
@@ -350,7 +350,7 @@ Days until program expires :  62
  TOTAL EFFECTIVE ETAS (NIND*NETA):                            66
   
  #TERE:
- Elapsed estimation  time in seconds:     1.18
+ Elapsed estimation  time in seconds:     1.19
  Elapsed covariance  time in seconds:     0.09
  Elapsed postprocess time in seconds:     0.03
 1
@@ -603,6 +603,6 @@ Days until program expires :  62
 +       -8.13E+00  2.41E+00 -8.33E+01 ......... -8.33E+01  6.11E+00
  
  Elapsed finaloutput time in seconds:     0.04
- #CPUT: Total CPU Time in Seconds,        1.370
+ #CPUT: Total CPU Time in Seconds,        1.379
 Stop Time:
-vr 28 nov 2025 14:21:25 CET
+zo 30 nov 2025 13:33:56 CET

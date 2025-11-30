@@ -1,7 +1,7 @@
 ;; 1. Based on: run00
 ;; 2. Description: CeftriaxPro Base Model - Two Compartment
 ;; x1. TEAM2
-;; 2015-11-24
+;; 2025-11-29
 
 $PROBLEM CeftriaxPro Base Model Development
 
@@ -13,40 +13,49 @@ IGNORE=@
 IGNORE=(CONC_ID.EQ.1) ;; ignores rows showing total plasma concentration
 
 $SUBROUTINES
-ADVAN3 ;; 2-compartment model
-TRANS4 ;; CL, V1,V2,Q
+ADVAN13 ;; general nonlinear model
+TOL=9
+
+$MODEL
+NCOMP=2                      ;; number of compartments
+COMP=(DOSE, DEFDOSE, DEFOBS) ;; first (central) compartment
+COMP=(PEROPH)                ;; second (peripheral) compartment
 
 $PK
 TVCL = THETA(1)
   CL = TVCL * EXP(ETA(1))
- TVV1 = THETA(2)
-   V1 = TVV1 * EXP(ETA(2))
- TVV2 = THETA(3)
-   V2 = TVV2
+TVV1 = THETA(2)
+  V1 = TVV1 * EXP(ETA(2))
+TVV2 = THETA(3)
+  V2 = TVV2
  TVQ = THETA(4)
    Q = TVQ
-   K = CL/V1
+ K10 = CL/V1
  K12 = Q/V1
  K21 = Q/V2
-  S2 = V1/1 ;; scale prediction based on DOSE (mmol) and DV (mmol/L)
+  S1 = V1 ;; scale prediction based on DOSE (mmol) and DV (mmol/L)
+  S2 = V2
 
-$THETA; explore dataset & literature, SAME order as PK
-(0, 7)  ;; based on phase 1 trial
-(0, 70) ;; based on phase 1 trial
-(0, 20) ;;
-(0, 30)
+$THETA; chech phase 1 trial, SAME order as PK
+(0, 7)  ;; CL
+(0, 40) ;; V1
+(0, 20) ;; V2
+(0, 30) ;; Q
 
 $OMEGA ;; variance covariance matrix for interindividual variability
 0.05;; not yet known, outcome picked for next models, put a relatively small number
 0.05;; not yet known, outcome picked for next models
 
 $SIGMA;; variance covariance matrix for residual error
-0.1 ;; EPS(1) for proportional error, not yet known, outcome picked for next models
+0.1 ;; EPS(1), proportional error, not yet known, outcome picked for next models
+
+$DES DADT(1) = -K10*A(1) -K12*A(1) +K21*A(2)  ;; ODE for central    compartment
+     DADT(2) =            K12*A(1) -K21*A(2)  ;; ODE for peripheral compartment
 
 $ERROR
 IPRED = F
 Y = IPRED + IPRED*ERR(1)
-W = SQRT((IPRED*SQRT(SIGMA(1,1)))**2)
+W = SQRT(IPRED**2*SIGMA(1,1)) ;; new
 IRES  = CONC - IPRED
 IWRES = IRES / W
 
@@ -56,18 +65,16 @@ MAXEVAL=9999
 SIG=3
 PRINT=5
 
-;;$COV PRINT=E;; second derivatives using -2log(likelihood), blank means sandwich method
+$COVARIANCE PRINT=E UNCONDITIONAL ;; new 
 
-$COV UNCONDITIONAL MATRIX=S
 $TABLE ;; output table for standard outcomes
-ID TIME DV EVID PRED IPRED WRES RES CWRES NOPRINT ONEHEADER FILE=run01_sdtab
+ID TIME DV EVID PRED CWRES MDV IPRED WRES RES CWRES NOPRINT ONEHEADER FILE=run01_sdtab
 
 $TABLE ;; output table for PK parameters
-ID CL V1 V2 Q K K12 K21 NOPRINT NOAPPEND ONEHEADER FILE=run01_patab
+ID CL V1 V2 Q K10 K12 K21 NOPRINT NOAPPEND ONEHEADER FILE=run01_patab
 
 $TABLE ;; output table for categorical covariates
 ID SEX ETHNI NOPRINT NOAPPEND ONEHEADER FILE=run01_catab
 
 $TABLE ;; output table for continuous covariates
 ID BW ALB SCR eGFR AGE NOPRINT NOAPPEND ONEHEADER FILE=run01_cotab
-

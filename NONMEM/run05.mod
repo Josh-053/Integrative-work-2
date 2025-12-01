@@ -1,7 +1,7 @@
-;; 1. Based on: run00
-;; 2. Description: CeftriaxPro Base Model - Two Compartment
+;; 1. Based on: run03
+;; 2. Description: CeftriaxPro Base Model - eGFR,BW~CL
 ;; x1. TEAM2
-;; 2025-11-29
+;; 2025-12-01
 
 $PROBLEM CeftriaxPro Base Model Development
 
@@ -10,12 +10,10 @@ $INPUT ID TIME DOSE=AMT RATE CONC=DV CONC_ID BW SEX ALB SCR eGFR AGE ETHNI PR DV
 $DATA
 dataset.csv
 IGNORE=@
-IGNORE=(CONC_ID.EQ.1) ;; ignores rows showing total plasma concentration
 
 $SUBROUTINES
 ADVAN13 ;; general nonlinear model
-TOL=9   ;; tolerance for $DES, higher TOL: more accurate, but slower computation
-        ;; TOL=9 -> DES will aim for accuracy of 1E-9 for each integration step
+TOL=9
 
 $MODEL
 NCOMP=2                      ;; number of compartments
@@ -23,25 +21,44 @@ COMP=(DOSE, DEFDOSE, DEFOBS) ;; first (central) compartment
 COMP=(PERIPH)                ;; second (peripheral) compartment
 
 $PK
-TVCL = THETA(1)
-  CL = TVCL * EXP(ETA(1))
-TVV1 = THETA(2)
+; exponents for covariates
+EGFRCL = THETA(1)
+  BWCL = THETA(2)
+
+TVCL = THETA(3)
+  CL = TVCL * (BW/70)**BWCL * (eGFR/90)**EGFRCL * EXP(ETA(1))
+TVV1 = THETA(4)
   V1 = TVV1 * EXP(ETA(2))
-TVV2 = THETA(3)
+;;V1 = TVV1 * (BW/70) * EXP(ETA(2))
+TVV2 = THETA(5)
   V2 = TVV2
- TVQ = THETA(4)
+ TVQ = THETA(6)
    Q = TVQ
+
  K10 = CL/V1
  K12 = Q/V1
  K21 = Q/V2
   S1 = V1 ;; scale prediction based on DOSE (mmol) and DV (mmol/L)
   S2 = V2
 
+; Binding parameters
+TVKD = THETA(7)
+  KD = TVKD
+ TVN = THETA(8)
+   N = TVN
+
 $THETA; chech phase 1 trial, SAME order as PK
+(0, 1) ;; EGFRCL
+(0, 1) ;; BWCL
+
 (0, 7)  ;; CL
 (0, 40) ;; V1
 (0, 20) ;; V2
 (0, 30) ;; Q
+
+(0, 0.1) ;; KD
+(0, 1) ;; N
+
 
 $OMEGA ;; variance covariance matrix for interindividual variability
 0.05;; not yet known, outcome picked for next models, put a relatively small number
@@ -54,9 +71,16 @@ $DES DADT(1) = -K10*A(1) -K12*A(1) +K21*A(2)  ;; ODE for central    compartment
      DADT(2) =            K12*A(1) -K21*A(2)  ;; ODE for peripheral compartment
 
 $ERROR
-IPRED = F
+IPRED_UNBOUND = F
+IF (CONC_ID.EQ.2) THEN
+   IPRED = IPRED_UNBOUND
+ELSE
+   IPRED = IPRED_UNBOUND * (1 + (N * ALB)/(KD + IPRED_UNBOUND))
+ENDIF
+
+
 Y = IPRED + IPRED*ERR(1)
-W = SQRT(IPRED**2*SIGMA(1,1)) ;; new
+W = SQRT(IPRED**2*SIGMA(1,1))
 IRES  = CONC - IPRED
 IWRES = IRES / W
 
@@ -69,14 +93,14 @@ PRINT=5
 $COVARIANCE PRINT=E UNCONDITIONAL ;; new 
 
 $TABLE ;; output table for standard outcomes
-ID TIME DV EVID PRED CWRES MDV IPRED WRES RES CWRES NOPRINT ONEHEADER FILE=run01_sdtab
+ID TIME DV EVID PRED CWRES MDV IPRED WRES RES CWRES NOPRINT ONEHEADER FILE=run05_sdtab
 
 $TABLE ;; output table for PK parameters
-ID CL V1 V2 Q K10 K12 K21 NOPRINT NOAPPEND ONEHEADER FILE=run01_patab
+ID CL V1 V2 Q K10 K12 K21 KD N NOPRINT NOAPPEND ONEHEADER FILE=run05_patab
 
 $TABLE ;; output table for categorical covariates
-ID SEX ETHNI NOPRINT NOAPPEND ONEHEADER FILE=run01_catab
+ID SEX ETHNI NOPRINT NOAPPEND ONEHEADER FILE=run05_catab
 
 $TABLE ;; output table for continuous covariates
-ID BW ALB SCR eGFR AGE NOPRINT NOAPPEND ONEHEADER FILE=run01_cotab
+ID BW ALB SCR eGFR AGE NOPRINT NOAPPEND ONEHEADER FILE=run05_cotab
 

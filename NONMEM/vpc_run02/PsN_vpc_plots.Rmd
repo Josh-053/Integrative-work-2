@@ -74,7 +74,7 @@ if (is.tte) {
 } else if (have.loq.data | have.censored) {
     plots <- xpose4::xpose.VPC.both(vpc.info=tool.results.file, vpctab=vpctab)
 } else {
-    plots <- xpose4::xpose.VPC(vpc.info=tool.results.file, vpctab=vpctab)
+    plots <- xpose4::xpose.VPC(vpc.info=tool.results.file, vpctab=vpctab, logy = TRUE)
 }
 print(plots) 
 ```

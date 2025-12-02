@@ -1,0 +1,82 @@
+<DATAFILE>
+
+[FILEINFO]
+file={path='../../../dataset.csv'}
+delimiter = comma
+header={ID, TIME, DOSE, RATE, CONC, CONC_ID, BW, SEX, ALB, SCR, eGFR, AGE, ETHNI, PR, DVID, CMT, MDV, EVID}
+
+[CONTENT]
+ID = {use=identifier}
+TIME = {use=time}
+DOSE = {use=amount}
+RATE = {use=rate}
+CONC = {use=observation, yname={'1', '2'}, type={continuous, continuous}}
+CONC_ID = {use=observationtype}
+BW = {use=covariate, type=continuous}
+SEX = {use=covariate, type=categorical}
+ALB = {use=covariate, type=continuous}
+SCR = {use=covariate, type=continuous}
+eGFR = {use=covariate, type=continuous}
+AGE = {use=covariate, type=continuous}
+ETHNI = {use=covariate, type=categorical}
+MDV = {use=missingdependentvariable}
+EVID = {use=eventidentifier}
+
+<MODEL>
+
+[COVARIATE]
+input = {AGE, ALB, BW, SCR, eGFR, ETHNI, SEX}
+
+ETHNI = {type=categorical, categories={'1', '2', '3', '4'}}
+SEX = {type=categorical, categories={'0', '1'}}
+
+[INDIVIDUAL]
+input = {Cl_pop, omega_Cl, Q_pop, omega_Q, V1_pop, omega_V1, V2_pop, omega_V2}
+
+DEFINITION:
+Cl = {distribution=logNormal, typical=Cl_pop, sd=omega_Cl}
+Q = {distribution=logNormal, typical=Q_pop, sd=omega_Q}
+V1 = {distribution=logNormal, typical=V1_pop, sd=omega_V1}
+V2 = {distribution=logNormal, typical=V2_pop, sd=omega_V2}
+
+[LONGITUDINAL]
+input = {a1, b1}
+
+file = 'lib:infusion_2cpt_ClV1QV2.txt'
+
+DEFINITION:
+y1 = {distribution=normal, prediction=Cc, errorModel=combined1(a1, b1)}
+
+<FIT>
+data = '1'
+model = y1
+
+<PARAMETER>
+Cl_pop = {value=0.878, method=MLE}
+Q_pop = {value=0.219, method=MLE}
+V1_pop = {value=12.48, method=MLE}
+V2_pop = {value=28.51, method=MLE}
+a1 = {value=1, method=MLE}
+b1 = {value=0.3, method=MLE}
+c1 = {value=1, method=FIXED}
+omega_Cl = {value=1, method=MLE}
+omega_Q = {value=1, method=MLE}
+omega_V1 = {value=1, method=MLE}
+omega_V2 = {value=1, method=MLE}
+
+<MONOLIX>
+
+[TASKS]
+populationParameters()
+individualParameters(method = {conditionalMean, conditionalMode })
+fim(method = StochasticApproximation)
+logLikelihood(method = ImportanceSampling)
+
+[PLOTS]
+run = true
+plots = {indfits = {selected = true}, parameterdistribution = {selected = true}, obspred = {selected = true}, covariancemodeldiagnosis = {selected = true}, covariatemodeldiagnosis = {selected = true}, vpc = {selected = true}, residualsscatter = {selected = true}, residualsdistribution = {selected = true}, randomeffects = {selected = true}, saemresults = {selected = true}}
+
+[SETTINGS]
+GLOBAL:
+exportpath = '../../'
+

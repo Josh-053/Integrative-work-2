@@ -1,2 +1,0 @@
-parameter,covariate,statistics,p-value,test
-Cl,beta_Cl_eGFR,4.40134,0.000118413,t-Test

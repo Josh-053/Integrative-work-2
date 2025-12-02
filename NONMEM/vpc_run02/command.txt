@@ -1,0 +1,2 @@
+/usr/local/bin/vpc -samples=200 -auto_bin=auto -dir=vpc_run02 -nozip run02.mod
+/usr/local/bin/vpc -samples=200 -auto_bin=auto -dir=vpc_run02 -dv=CONC -nozip run02.mod

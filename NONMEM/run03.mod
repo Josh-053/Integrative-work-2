@@ -49,7 +49,7 @@ TVKD = THETA(6)
    N = TVN
 
 $THETA; chech phase 1 trial, SAME order as PK
-(0, 1) ;; EGFRCL
+    0.1 ;; EGFRCL
 
 (0, 7)  ;; CL
 (0, 40) ;; V1

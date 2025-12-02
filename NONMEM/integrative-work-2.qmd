@@ -16,6 +16,7 @@ CEF <- read.table("IW2_Dataset_003_2526.txt",
 library(tidyverse)
 library(ggplot2)
 library(patchwork)
+library(smplot2)
 ```
 
 ```{r}
@@ -108,3 +109,47 @@ ggplot(CEF,
 ```
 
 ask emanuel about PR (ID = 7, PR goes from 1 to 0 and 0 to 1) -\> healed or not, ask emanuel about sex: pk-pattern shows inverted observations from phase I -\> body weight, eGFR
+
+
+```{r}
+dat <- read.table (file='run02', skip=1, header=T)
+ggplot (dat, aes(x = eGFR,
+                 y = ETA1)) +
+  geom_point (color='blue') +
+  sm_statCorr(corr_method = "spearman", color = "black")
+```
+
+```{r}
+dat <- read.table (file='run02', skip=1, header=T)
+ggplot (dat, aes(x = BW,
+                 y = ETA1)) +
+  geom_point (color='blue') +
+  sm_statCorr(corr_method = "spearman", color = "black")
+```
+
+```{r}
+sim <- read.table (file="run06", skip=1, header=T)
+
+sim_summary <- sim %>%
+  group_by(TIME) %>%
+  summarise(
+    p5 = quantile(IPRED, 0.05),
+    p50 = quantile(IPRED, 0.50),
+    p95 = quantile(IPRED, 0.95)
+  )
+
+obs_summary <- dat %>%
+  group_by(TIME) %>%
+  summarise(obs_median = median(CONC))
+
+vpc_data <- left_join(sim_summary, obs_summary, by = "TIME")
+
+ggplot(vpc_data, aes(x = TIME)) +
+  geom_ribbon(aes(ymin = p5, ymax = p95), fill = "lightblue", alpha = 0.4) +
+  geom_line(aes(y = p50), color = "blue", size = 1) +
+  geom_point(aes(y = obs_median), color = "red", size = 2) +
+  labs(title = "Visual Predictive Check",
+       x = "Time (h)", y = "Concentration") +
+  theme_minimal()
+```
+

@@ -73,8 +73,8 @@ Days until program expires :  58
  NPARAMETR:  7.2376E+00  5.7232E+01  4.8708E+01  2.0340E+01  4.2892E-02  8.5138E-01  2.1172E-01  2.7093E-01  5.6695E-02
  PARAMETER:  1.3338E-01  4.5824E-01  9.9012E-01 -2.8859E-01 -7.4648E-01 -6.0897E-02  8.2163E-01  9.4491E-01 -1.8375E-01
  GRADIENT:  -8.0871E-04 -3.2470E-02 -4.0881E-02  1.4529E-02 -1.8141E-02  4.3218E-02 -7.1228E-03 -1.8127E-02  3.1555E-02
- Elapsed estimation  time in seconds:    95.92
- Elapsed covariance  time in seconds:    10.61
+ Elapsed estimation  time in seconds:    95.41
+ Elapsed covariance  time in seconds:    10.51
  Elapsed postprocess time in seconds:     0.82
  Elapsed finaloutput time in seconds:     0.06
 Done with nonmem execution

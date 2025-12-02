@@ -153,3 +153,26 @@ ggplot(vpc_data, aes(x = TIME)) +
   theme_minimal()
 ```
 
+```{r}
+library(ggpubr)
+
+# Boxplot with violin plot
+run02 <- read.table (file="run02", skip=1, header=T)
+
+ggplot(run02, aes(x = PR, y = CL, fill = as.factor(PR))) +
+  geom_boxplot(width=0.1, outlier.shape = NA) +
+  geom_violin(alpha = 0.3,
+              trim = FALSE) +
+  stat_compare_means(
+    method = "wilcox.test",    # Non-parametric test (Mann-Whitney)
+    label = "p.format",         # show p-value (use "p.signif" for stars)
+    label.x = 1.5
+  ) +
+  labs(title = "Clearance vs Pneumonia Remission",
+       x = "Remission Status",
+       y = "Clearance (L/h)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+ 
+```
+

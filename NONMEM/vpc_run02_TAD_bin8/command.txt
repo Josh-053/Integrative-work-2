@@ -1,0 +1,1 @@
+/usr/local/bin/vpc -samples=200 -auto_bin=8 -dir=vpc_run02_TAD_bin8 -dv=CONC -idv=TAD -nozip run02.mod

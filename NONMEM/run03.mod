@@ -21,16 +21,16 @@ COMP=(DOSE, DEFDOSE, DEFOBS) ;; first (central) compartment
 COMP=(PERIPH)                ;; second (peripheral) compartment
 
 $PK
-; exponents for covariates
-EGFRCL = THETA(1)
-;;BW_CL = THETA(8)
+IF (EVID.EQ.1) LASTDOSE = TIME
+TAD = TIME - LASTDOSE
 
+EGFRCL = THETA(1)
+
+; exponents for covariates
 TVCL = THETA(2)
-;;CL = TVCL * (BW/70)**BW_CL * (eGFR/90)**eGFR_CL * EXP(ETA(1))
   CL = TVCL * (eGFR/90)**EGFRCL * EXP(ETA(1))
 TVV1 = THETA(3)
   V1 = TVV1 * EXP(ETA(2))
-;;V1 = TVV1 * (BW/70) * EXP(ETA(2))
 TVV2 = THETA(4)
   V2 = TVV2
  TVQ = THETA(5)
@@ -48,17 +48,17 @@ TVKD = THETA(6)
  TVN = THETA(7)
    N = TVN
 
-$THETA; chech phase 1 trial, SAME order as PK
-    0.1 ;; EGFRCL
 
-(0, 7)  ;; CL
-(0, 40) ;; V1
-(0, 20) ;; V2
-(0, 30) ;; Q
+$THETA; chech phase 1 trial, SAME order as PK
+    0.1  ;; EGFRCL
+
+(0, 7)   ;; CL
+(0, 40)  ;; V1
+(0, 20)  ;; V2
+(0, 30)  ;; Q
 
 (0, 0.1) ;; KD
-(0, 1) ;; N
-
+(0, 1)   ;; N
 
 $OMEGA ;; variance covariance matrix for interindividual variability
 0.05;; not yet known, outcome picked for next models, put a relatively small number
@@ -72,12 +72,8 @@ $DES DADT(1) = -K10*A(1) -K12*A(1) +K21*A(2)  ;; ODE for central    compartment
 
 $ERROR
 IPRED_UNBOUND = F
-IF (CONC_ID.EQ.2) THEN
-   IPRED = IPRED_UNBOUND
-ELSE
-   IPRED = IPRED_UNBOUND * (1 + (N * ALB)/(KD + IPRED_UNBOUND))
-ENDIF
-
+IF (CONC_ID.EQ.2) IPRED = IPRED_UNBOUND ;; unbound
+IF (CONC_ID.EQ.1) IPRED = IPRED_UNBOUND * (1 + (N * ALB)/(KD + IPRED_UNBOUND))
 
 Y = IPRED + IPRED*ERR(1)
 W = SQRT(IPRED**2*SIGMA(1,1))
@@ -90,17 +86,8 @@ MAXEVAL=9999
 SIG=3
 PRINT=5
 
-$COVARIANCE PRINT=E UNCONDITIONAL ;; new 
+$COVARIANCE UNCONDITIONAL MATRIX=S
 
-$TABLE ;; output table for standard outcomes
-ID TIME DV EVID PRED CWRES MDV IPRED WRES RES CWRES NOPRINT ONEHEADER FILE=run03_sdtab
-
-$TABLE ;; output table for PK parameters
-ID CL V1 V2 Q K10 K12 K21 KD N NOPRINT NOAPPEND ONEHEADER FILE=run03_patab
-
-$TABLE ;; output table for categorical covariates
-ID SEX ETHNI NOPRINT NOAPPEND ONEHEADER FILE=run03_catab
-
-$TABLE ;; output table for continuous covariates
-ID BW ALB SCR eGFR AGE NOPRINT NOAPPEND ONEHEADER FILE=run03_cotab
+$TABLE
+ID TIME TAD DV CONC_ID EVID PRED CWRES MDV IPRED WRES RES CL ETA(1) V1 ETA(2) V2 Q K10 K12 K21 KD N SEX ETHNI BW ALB SCR eGFR AGE PR NOPRINT ONEHEADER FILE=run02
 

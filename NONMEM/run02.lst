@@ -1,4 +1,4 @@
-ma 01 dec 2025 12:10:45 CET
+ma 01 dec 2025 16:17:08 CET
 ;; 1. Based on: run01
 ;; 2. Description: CeftriaxPro Base Model - Total Plasma Conc.
 ;; x1. TEAM2
@@ -61,17 +61,9 @@ IWRES = IRES / W
 $ESTIMATION METHOD=1 INTERACTION ;; FOCE-I
             MAXEVAL=9999 SIG=3 PRINT=5
 $COVARIANCE UNCONDITIONAL MATRIX=S
- ;; output table for standard outcomes
-$TABLE      ID TIME DV CONC_ID EVID PRED CWRES MDV IPRED WRES RES
-            CWRES NOPRINT ONEHEADER FILE=run02_sdtab
- ;; output table for PK parameters
-$TABLE      ID CL V1 V2 Q K10 K12 K21 KD N NOPRINT NOAPPEND ONEHEADER
-            FILE=run02_patab
- ;; output table for categorical covariates
-$TABLE      ID SEX ETHNI NOPRINT NOAPPEND ONEHEADER FILE=run02_catab
- ;; output table for continuous covariates
-$TABLE      ID BW ALB SCR eGFR AGE NOPRINT NOAPPEND ONEHEADER
-            FILE=run02_cotab
+$TABLE      ID TIME DV CONC_ID EVID PRED CWRES MDV IPRED WRES RES CL
+            ETA(1) V1 ETA(2) V2 Q K10 K12 K21 KD N SEX ETHNI BW ALB
+            SCR eGFR AGE NOPRINT ONEHEADER FILE=run02
 
 
 NM-TRAN MESSAGES
@@ -173,7 +165,7 @@ Days until program expires :  59
  FORCED POS. DEFINITE SETTING DURING PRECONDITIONING: (FPOSDEF):0
  SIMPLE POS. DEFINITE SETTING: (POSDEF):-1
 0TABLES STEP OMITTED:    NO
- NO. OF TABLES:           4
+ NO. OF TABLES:           1
  SEED NUMBER (SEED):    11456
  NPDTYPE:    0
  INTERPTYPE:    0
@@ -192,46 +184,7 @@ Days until program expires :  59
  RFORMAT:
  FIXED_EFFECT_ETAS:
 0USER-CHOSEN ITEMS:
- ID TIME CONC CONC_ID EVID CWRES MDV IPRED CWRES
-0-- TABLE   2 --
-0RECORDS ONLY:    ALL
-04 COLUMNS APPENDED:    NO
- PRINTED:                NO
- HEADERS:               ONE
- FILE TO BE FORWARDED:   NO
- FORMAT:                S1PE11.4
- IDFORMAT:
- LFORMAT:
- RFORMAT:
- FIXED_EFFECT_ETAS:
-0USER-CHOSEN ITEMS:
- ID CL V1 V2 Q K10 K12 K21 KD N
-0-- TABLE   3 --
-0RECORDS ONLY:    ALL
-04 COLUMNS APPENDED:    NO
- PRINTED:                NO
- HEADERS:               ONE
- FILE TO BE FORWARDED:   NO
- FORMAT:                S1PE11.4
- IDFORMAT:
- LFORMAT:
- RFORMAT:
- FIXED_EFFECT_ETAS:
-0USER-CHOSEN ITEMS:
- ID SEX ETHNI
-0-- TABLE   4 --
-0RECORDS ONLY:    ALL
-04 COLUMNS APPENDED:    NO
- PRINTED:                NO
- HEADERS:               ONE
- FILE TO BE FORWARDED:   NO
- FORMAT:                S1PE11.4
- IDFORMAT:
- LFORMAT:
- RFORMAT:
- FIXED_EFFECT_ETAS:
-0USER-CHOSEN ITEMS:
- ID BW ALB SCR eGFR AGE
+ ID TIME CONC CONC_ID EVID CWRES MDV IPRED CL ETA1 V1 ETA2 V2 Q K10 K12 K21 KD N SEX ETHNI BW ALB SCR eGFR AGE
 1DOUBLE PRECISION PREDPP VERSION 7.6.0 (nm760)
 
  GENERAL NONLINEAR KINETICS MODEL WITH STIFF/NONSTIFF EQUATIONS (LSODA, ADVAN13)
@@ -407,9 +360,9 @@ Days until program expires :  59
  TOTAL EFFECTIVE ETAS (NIND*NETA):                            66
   
  #TERE:
- Elapsed estimation  time in seconds:   100.82
- Elapsed covariance  time in seconds:    11.14
- Elapsed postprocess time in seconds:     0.90
+ Elapsed estimation  time in seconds:    95.92
+ Elapsed covariance  time in seconds:    10.60
+ Elapsed postprocess time in seconds:     0.83
 1
  
  
@@ -696,6 +649,6 @@ Days until program expires :  59
 +       -6.41E+01 -1.65E+01 -1.37E+01 -3.64E+01 -1.64E+05  8.94E+03  7.07E+02 .........  7.95E+02  4.09E+05
  
  Elapsed finaloutput time in seconds:     0.07
- #CPUT: Total CPU Time in Seconds,      112.667
+ #CPUT: Total CPU Time in Seconds,      107.363
 Stop Time:
-ma 01 dec 2025 12:12:44 CET
+ma 01 dec 2025 16:19:01 CET

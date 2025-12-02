@@ -1,4 +1,4 @@
-ma 01 dec 2025 16:17:08 CET
+di 02 dec 2025 10:23:22 CET
 ;; 1. Based on: run01
 ;; 2. Description: CeftriaxPro Base Model - Total Plasma Conc.
 ;; x1. TEAM2
@@ -13,6 +13,9 @@ $MODEL      NCOMP=2 ;; number of compartments
             COMP=(DOSE,DEFDOSE,DEFOBS) ;; first (central) compartment
             COMP=(PERIPH) ;; second (peripheral) compartment
 $PK
+IF (EVID.EQ.1) LASTDOSE = TIME
+TAD = TIME - LASTDOSE
+
 TVCL = THETA(1)
   CL = TVCL * EXP(ETA(1))
 TVV1 = THETA(2)
@@ -61,8 +64,8 @@ IWRES = IRES / W
 $ESTIMATION METHOD=1 INTERACTION ;; FOCE-I
             MAXEVAL=9999 SIG=3 PRINT=5
 $COVARIANCE UNCONDITIONAL MATRIX=S
-$TABLE      ID TIME DV CONC_ID EVID PRED CWRES MDV IPRED WRES RES CL
-            ETA(1) V1 ETA(2) V2 Q K10 K12 K21 KD N SEX ETHNI BW ALB
+$TABLE      ID TIME TAD DV CONC_ID EVID PRED CWRES MDV IPRED WRES RES
+            CL ETA(1) V1 ETA(2) V2 Q K10 K12 K21 KD N SEX ETHNI BW ALB
             SCR eGFR AGE NOPRINT ONEHEADER FILE=run02
 
 
@@ -94,8 +97,8 @@ Note: Analytical 2nd Derivatives are constructed in FSUBS but are never used.
 
 License Registered to: Erwin DREESEN KU Leuven
 Expiration Date:    25 JAN 2026
-Current Date:        1 DEC 2025
-Days until program expires :  59
+Current Date:        2 DEC 2025
+Days until program expires :  58
 1NONLINEAR MIXED EFFECTS MODEL PROGRAM (NONMEM) VERSION 7.6.0 (nm760)
  ORIGINALLY DEVELOPED BY STUART BEAL, LEWIS SHEINER, AND ALISON BOECKMANN
  CURRENT DEVELOPERS ARE ROBERT BAUER, ICON DEVELOPMENT SOLUTIONS,
@@ -118,7 +121,7 @@ Days until program expires :  59
 0LABELS FOR DATA ITEMS:
  ID TIME DOSE RATE CONC CONC_ID BW SEX ALB SCR eGFR AGE ETHNI PR DVID CMT MDV EVID
 0(NONBLANK) LABELS FOR PRED-DEFINED ITEMS:
- CL V1 V2 Q K10 K12 K21 KD N IPRED
+ TAD CL V1 V2 Q K10 K12 K21 KD N IPRED
 0FORMAT FOR DATA:
  (E2.0,E7.0,E8.0,E16.0,E20.0,E1.0,E16.0,E1.0/2E17.0,E16.0,7E2.0)
 
@@ -184,7 +187,7 @@ Days until program expires :  59
  RFORMAT:
  FIXED_EFFECT_ETAS:
 0USER-CHOSEN ITEMS:
- ID TIME CONC CONC_ID EVID CWRES MDV IPRED CL ETA1 V1 ETA2 V2 Q K10 K12 K21 KD N SEX ETHNI BW ALB SCR eGFR AGE
+ ID TIME TAD CONC CONC_ID EVID CWRES MDV IPRED CL ETA1 V1 ETA2 V2 Q K10 K12 K21 KD N SEX ETHNI BW ALB SCR eGFR AGE
 1DOUBLE PRECISION PREDPP VERSION 7.6.0 (nm760)
 
  GENERAL NONLINEAR KINETICS MODEL WITH STIFF/NONSTIFF EQUATIONS (LSODA, ADVAN13)
@@ -361,8 +364,8 @@ Days until program expires :  59
   
  #TERE:
  Elapsed estimation  time in seconds:    95.92
- Elapsed covariance  time in seconds:    10.60
- Elapsed postprocess time in seconds:     0.83
+ Elapsed covariance  time in seconds:    10.61
+ Elapsed postprocess time in seconds:     0.82
 1
  
  
@@ -648,7 +651,7 @@ Days until program expires :  59
  SG11
 +       -6.41E+01 -1.65E+01 -1.37E+01 -3.64E+01 -1.64E+05  8.94E+03  7.07E+02 .........  7.95E+02  4.09E+05
  
- Elapsed finaloutput time in seconds:     0.07
- #CPUT: Total CPU Time in Seconds,      107.363
+ Elapsed finaloutput time in seconds:     0.06
+ #CPUT: Total CPU Time in Seconds,      107.532
 Stop Time:
-ma 01 dec 2025 16:19:01 CET
+di 02 dec 2025 10:25:14 CET

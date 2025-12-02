@@ -3,7 +3,7 @@
 [FILEINFO]
 file={path='../../dataset.csv'}
 delimiter = comma
-header={ID, TIME, DOSE, RATE, CONC, CONC_ID, BW, SEX, ALB, SCR, eGFR, AGE, ETHNI, PR, DVID, EVID}
+header={ID, TIME, DOSE, RATE, CONC, CONC_ID, BW, SEX, ALB, SCR, eGFR, AGE, ETHNI, PR, DVID, CMT, MDV, EVID}
 
 [CONTENT]
 ID = {use=identifier}
@@ -11,6 +11,7 @@ TIME = {use=time}
 DOSE = {use=amount}
 RATE = {use=rate}
 CONC = {use=observation, yname={'1', '2'}, type={continuous, continuous}}
+CONC_ID = {use=observationtype}
 BW = {use=covariate, type=continuous}
 SEX = {use=covariate, type=categorical}
 ALB = {use=covariate, type=continuous}
@@ -18,7 +19,7 @@ SCR = {use=covariate, type=continuous}
 eGFR = {use=covariate, type=continuous}
 AGE = {use=covariate, type=continuous}
 ETHNI = {use=covariate, type=categorical}
-DVID = {use=observationtype}
+MDV = {use=missingdependentvariable}
 EVID = {use=eventidentifier}
 
 <MODEL>
@@ -30,10 +31,10 @@ ETHNI = {type=categorical, categories={'1', '2', '3', '4'}}
 SEX = {type=categorical, categories={'0', '1'}}
 
 [INDIVIDUAL]
-input = {Cl_pop, Q_pop, V1_pop, omega_V1, V2_pop, omega_Cl, omega_V2, eGFR, beta_Cl_eGFR, omega_Q}
+input = {Cl_pop, omega_Cl, Q_pop, omega_Q, V1_pop, omega_V1, V2_pop, omega_V2}
 
 DEFINITION:
-Cl = {distribution=logNormal, typical=Cl_pop, covariate=eGFR, coefficient=beta_Cl_eGFR, sd=omega_Cl}
+Cl = {distribution=logNormal, typical=Cl_pop, sd=omega_Cl}
 Q = {distribution=logNormal, typical=Q_pop, sd=omega_Q}
 V1 = {distribution=logNormal, typical=V1_pop, sd=omega_V1}
 V2 = {distribution=logNormal, typical=V2_pop, sd=omega_V2}
@@ -57,7 +58,6 @@ V1_pop = {value=12.48, method=MLE}
 V2_pop = {value=28.51, method=MLE}
 a1 = {value=1, method=MLE}
 b1 = {value=0.3, method=MLE}
-beta_Cl_eGFR = {value=0, method=MLE}
 c1 = {value=1, method=FIXED}
 omega_Cl = {value=1, method=MLE}
 omega_Q = {value=1, method=MLE}
@@ -79,8 +79,4 @@ plots = {indfits = {selected = true}, parameterdistribution = {selected = true},
 [SETTINGS]
 GLOBAL:
 exportpath = '../'
-
-POPULATION:
-exploratoryiterations = 1000
-simulatedannealingiterations = 1000
 

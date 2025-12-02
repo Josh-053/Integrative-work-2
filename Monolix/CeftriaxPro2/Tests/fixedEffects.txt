@@ -1,2 +1,0 @@
-parameter,statistics(sa),p-value(sa)
-beta_Cl_eGFR,4.27885,1.88e-05

@@ -1,8 +1,5 @@
----
-NONMEM_directory: /home/ali/nm760
-NONMEM_version: 7.6
-PsN_version: 5.6.0
-command_line: /usr/local/bin/vpc -samples=200 -auto_bin=8 -dir=vpc_run03_TAD_bin8 -dv=CONC -idv=TAD -nozip run03.mod
+command_line: /usr/local/bin/vpc -samples=200 -auto_bin=8 -dir=vpc_run03_TAD_bin8
+  -dv=CONC -idv=TAD -nozip run03.mod
 common_options:
   abort_on_fail: 0
   accepted_ofv_difference: 0.5
@@ -28,7 +25,7 @@ common_options:
   missing_data_token: -99
   model_subdir: 0
   nice: 19
-  nm_output: 'ext,cov,cor,coi,phi,phm,cnv,smt,rmt,npd,npe,npi,npl,ets'
+  nm_output: ext,cov,cor,coi,phi,phm,cnv,smt,rmt,npd,npe,npi,npl,ets
   nm_version: default
   nmfe: 1
   nodes: 0
@@ -57,34 +54,15 @@ common_options:
   verbose: 0
   zip: 0
 finish_time: 2025-12-02 13:57:19
-model_files:
-  - /home/ali/Documents/GitHub/Integrative-work-2/NONMEM/run03.mod
-start_time: 2025-12-02 13:57:03
-tool_name: vpc
-tool_options:
-  bin_array: ''
-  boxcox_lambda: 0
-  confidence_interval: 95
-  copy_data: 1
-  dv: CONC
-  fine_pi: 0
-  flip_comments: 0
-  idv: TAD
-  in_filter: ''
-  keep_estimation: 0
-  levels: ''
-  lnDV: 0
-  mix: 0
-  n_simulation_models: 1
-  noprediction: 0
-  offset_rawres: 1
-  predcorr: 0
-  refcorr_idv: 0
-  sim_table: ''
-  so: 0
-  varcorr: 0
-R_version: 4.5.2
-R_system: x86_64, linux-gnu
+model_files: /home/ali/Documents/GitHub/Integrative-work-2/NONMEM/run03.mod
+NONMEM_directory: /home/ali/nm760
+NONMEM_version: 7.6
+PsN_version: 5.6.0
+R_LIB_PATHS:
+  - /home/ali/R/x86_64-redhat-linux-gnu-library/4.5
+  - /usr/local/share/perl5/5.40/PsN_5_6_0/Rlib
+  - /usr/lib64/R/library
+  - /usr/share/R/library
 R_packages:
   - cli-3.6.5 from CRAN (R 4.5.2)
   - codetools-0.2-20 from CRAN (R 4.5.2)
@@ -125,8 +103,29 @@ R_packages:
   - xfun-0.54 from CRAN (R 4.5.2)
   - xpose4-4.7.4 from CRAN (R 4.5.2)
   - yaml-2.3.10 from CRAN (R 4.5.2)
-R_LIB_PATHS:
-  - /home/ali/R/x86_64-redhat-linux-gnu-library/4.5
-  - /usr/local/share/perl5/5.40/PsN_5_6_0/Rlib
-  - /usr/lib64/R/library
-  - /usr/share/R/library
+R_system: x86_64, linux-gnu
+R_version: 4.5.2
+start_time: 2025-12-02 13:57:03
+tool_name: vpc
+tool_options:
+  bin_array: ''
+  boxcox_lambda: 0
+  confidence_interval: 95
+  copy_data: 1
+  dv: CONC
+  fine_pi: 0
+  flip_comments: 0
+  idv: TAD
+  in_filter: ''
+  keep_estimation: 0
+  levels: ''
+  lnDV: 0
+  mix: 0
+  n_simulation_models: 1
+  noprediction: 0
+  offset_rawres: 1
+  predcorr: 0
+  refcorr_idv: 0
+  sim_table: ''
+  so: 0
+  varcorr: 0

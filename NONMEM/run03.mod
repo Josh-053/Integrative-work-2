@@ -39,7 +39,7 @@ TVV2 = THETA(4)
  K10 = CL/V1
  K12 = Q/V1
  K21 = Q/V2
-  S1 = V1 ;; scale prediction based on DOSE (mmol) and DV (mmol/L)
+  S1 = V1 ; scale prediction based on DOSE (mmol) and DV (mmol/L)
   S2 = V2
 
 ; Binding parameters
@@ -50,22 +50,23 @@ TVKD = THETA(6)
 
 
 $THETA; chech phase 1 trial, SAME order as PK
-    0.1  ;; EGFRCL
+    0.1  ; EGFRCL
 
-(0, 7)   ;; CL
-(0, 40)  ;; V1
-(0, 20)  ;; V2
-(0, 30)  ;; Q
+(0, 7)   ; CL
+(0, 40)  ; V1
+(0, 20)  ; V2
+(0, 30)  ; Q
 
-(0, 0.1) ;; KD
-(0, 1)   ;; N
+(0, 0.1) ; KD
+(0, 1)   ; N
 
 $OMEGA ;; variance covariance matrix for interindividual variability
-0.05;; not yet known, outcome picked for next models, put a relatively small number
-0.05;; not yet known, outcome picked for next models
+0.05; ETA(1)
+0.05; ETA(2)
 
 $SIGMA;; variance covariance matrix for residual error
-0.1 ;; EPS(1), proportional error, not yet known, outcome picked for next models
+0.1 ; EPS(1)
+    ;;proportional error, not yet known, outcome picked for next models
 
 $DES DADT(1) = -K10*A(1) -K12*A(1) +K21*A(2)  ;; ODE for central    compartment
      DADT(2) =            K12*A(1) -K21*A(2)  ;; ODE for peripheral compartment

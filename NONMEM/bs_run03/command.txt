@@ -1,0 +1,13 @@
+/usr/local/bin/bootstrap -samples=2000 -threads=6 -dir=bs_run03 -nozip run03.mod
+/usr/local/bin/bootstrap -samples=2000 -threads=8 -dir=bs_run03 -nozip run03.mod
+/usr/local/bin/bootstrap -samples=2000 -threads=8 -dir=bs_run03 -nozip run03.mod
+/usr/local/bin/bootstrap -samples=2000 -threads=6 -dir=bs_run03 -nozip run03.mod
+/usr/local/bin/bootstrap -samples=2000 -threads=8 -dir=bs_run03 -nozip run03.mod
+/usr/local/bin/bootstrap -samples=2000 -threads=8 -dir=bs_run03 -nozip run03.mod
+/usr/local/bin/bootstrap -samples=1000 -threads=8 -dir=bs_run03 -nozip run03.mod
+/usr/local/bin/bootstrap -samples=1000 -threads=8 -dir=bs_run03 -nozip run03.mod
+/usr/local/bin/bootstrap -samples=1000 -threads=8 -dir=bs_run03 -nozip run03.mod
+/usr/local/bin/bootstrap -samples=1000 -threads=8 -dir=bs_run03 -nozip run03.mod
+/usr/local/bin/bootstrap -samples=1000 -threads=8 -dir=bs_run03 -nozip run03.mod
+/usr/local/bin/bootstrap -samples=1000 -threads=8 -dir=bs_run03 -nozip run03.mod
+/usr/local/bin/bootstrap -samples=2000 -threads=8 -dir=bs_run03 -nozip run03.mod

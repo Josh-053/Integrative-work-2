@@ -1,0 +1,30 @@
+---
+title: "Untitled"
+format: html
+---
+
+```{r packages}
+#| echo: true
+
+if (!require("pacman")) {
+  install.packages("pacman")
+  library(pacman)}
+
+pacman::p_load(mrgsolve,
+               ggplot2,
+               tidyverse,
+               patchwork)
+```
+
+```{r}
+#| echo: false
+mod <- mread("run03")
+```
+
+```{r}
+#| echo: false
+mod %>%
+  ev(amt = 3.333333) %>% 
+  mrgsim() %>% 
+  plot()
+```

@@ -35,7 +35,7 @@ mod %>%
 ```{r}
 MIC <- 0.5      # mg/L (typical for S. pneumoniae)
 fu  <- 0.9      # fraction unbound
-tau <- 12       # dosing interval (hours)
+tau <- 24       # dosing interval (hours)
 ```
 
 # Simulate one interval at steady state

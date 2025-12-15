@@ -58,3 +58,52 @@ out <- out %>%
 ft_mic <- sum(out$aboveMIC) * 0.01 / tau * 100
 ft_mic
 ```
+# Multiple dosing events
+
+```{r}
+e1 <- ev(amt = 2000) #loading dose
+e2 <- ev(amt = 2000, cmt = 1,
+         rate = 0.5,
+         time = 24, 
+         ii = 24,
+         addl = 1) 
+e <-c(e1,e2)
+```
+```{r}
+mod %>% 
+  ev(e) %>% 
+  mrgsim(end=80, 
+         delta=0.05) %>% 
+  plot()
+```
+
+# Set EPS(1) variance to 0.03294046 (1×1 SIGMA)
+
+```{r}
+mod <- update(mod, sigma = matrix(0.03294046, nrow = 1))
+smat(mod) 
+
+mod %>% 
+  ev(amt = 300) %>% 
+  mrgsim(delta=0.05) %>% 
+  plot(DV~time,
+       col = "darkred",
+       type = "p",
+       main = "Simulated Pk profile (ID: 1)",
+       ylab = "Plasma concentration (mg/L)",
+       xlab = "Time (h)") 
+```
+```{r}
+mod %>%
+  ev(amt = 300) %>% 
+  mrgsim(nid = 1,
+         delta=0.05) -> res
+
+ggplot(as.data.frame(res), 
+       aes(x = time, y = DV)) +
+  geom_line() +
+  labs(x = "Time (h)", 
+       y = "Plasma concentration (mg/L)", 
+       title = "Simulated Pk profiles (ID: 1)") 
+
+```

@@ -24,7 +24,37 @@ mod <- mread("run03")
 ```{r}
 #| echo: false
 mod %>%
-  ev(amt = 3.333333) %>% 
+  ev(amt = 2000) %>% 
   mrgsim() %>% 
   plot()
+```
+# Assume you already have your two-compartment infusion model compiled as 'mod'
+# Example: mod <- mread("twocpt_infusion", "path/to/model")
+
+# Parameters
+```{r}
+MIC <- 0.5      # mg/L (typical for S. pneumoniae)
+fu  <- 0.9      # fraction unbound
+tau <- 12       # dosing interval (hours)
+```
+
+# Simulate one interval at steady state
+```{r}
+out <- mod %>%
+  ev(amt = 2000, ii = tau, addl = 10, rate = 2000/0.5) %>% # 2 g over 0.5 h, q12h
+  mrgsim(end = tau, delta = 0.01)                          # fine grid
+```
+
+# Compute free concentrations
+
+```{r}
+out <- out %>%
+  mutate(Cfree = IPRED * fu,                # CP = central compartment conc
+         aboveMIC = Cfree > MIC)
+```
+
+# Calculate fT>MIC
+```{r}
+ft_mic <- sum(out$aboveMIC) * 0.01 / tau * 100
+ft_mic
 ```

@@ -17,6 +17,7 @@ library(tidyverse)
 library(ggplot2)
 library(patchwork)
 library(smplot2)
+library(mrgsolve)
 ```
 
 ```{r}
@@ -174,5 +175,31 @@ ggplot(run02, aes(x = PR, y = CL, fill = as.factor(PR))) +
   theme_minimal() +
   theme(legend.position = "none")
  
+```
+
+# calculating the fraction unbound
+
+```{r}
+
+total <- CEF %>%
+  filter(CONC_ID == 1) %>%
+  select(ID, TIME, total = CONC)
+
+unbound <- CEF %>%
+  filter(CONC_ID == 2) %>%
+  select(ID, TIME, unbound = CONC)
+
+fu_by_time <- total %>%
+  inner_join(unbound, by = c("ID", "TIME")) %>%
+  mutate(
+    fu = case_when(
+      is.na(total) | is.na(unbound) ~ NA_real_,
+      total == 0 ~ NA_real_,
+      TRUE ~ unbound / total
+    )
+  )
+
+ggplot(fu_by_time, aes(x = fu)) +
+  geom_histogram()
 ```
 

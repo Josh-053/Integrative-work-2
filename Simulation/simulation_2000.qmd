@@ -58,16 +58,16 @@ e <- ev(
 sd_eta1 <- sqrt(0.0991)  # ETA(1) on CL
 sd_eta2 <- sqrt(0.28)    # ETA(2) on V1
 
-# ---- Phase 2 eGFR quartiles ----
-eGFR_q1     <- 69.14
+# ---- Phase 2 eGFR range ----
+eGFR_min    <- 51.30
 eGFR_median <- 83.67
-eGFR_q3     <- 100.84
+eGFR_max    <- 123.79
 
 vary_eGFR <- TRUE
 
 # Sample eGFR uniformly within IQR (robust, non-parametric)
 if (vary_eGFR) {
-  eGFR_vals <- runif(N, min = eGFR_q1, max = eGFR_q3)
+  eGFR_vals <- runif(N, min = eGFR_min, max = eGFR_max)
 } else {
   eGFR_vals <- rep(eGFR_median, N)
 }
@@ -116,6 +116,13 @@ ft_by_id <- out_ss %>%
   group_by(ID) %>%
   summarize(ft_mic = mean(aboveMIC) * 100, .groups = "drop")
 
+
+# Join eGFR to the fT>MIC summary per ID and create a grouping variable
+ft_by_id <- ft_by_id %>%
+  left_join(idata %>% select(ID, eGFR), by = "ID") %>%
+  mutate(
+    eGFR_group = if_else(eGFR <= 96.5, "≤ 96.5", "> 96.5"))
+
 # -----------------------------
 # Summary across 5,000 subjects
 # -----------------------------
@@ -136,19 +143,123 @@ summary_ft
 ```
 
 ```{r}
-
 target_ftmic <- 70  # adjust if needed
 
 ggplot(ft_by_id, aes(x = ft_mic)) +
-  geom_histogram(bins = 50, color = "white", fill = "#2C7FB8") +
-  geom_vline(xintercept = target_ftmic, color = "#D95F0E", linetype = "dashed", size = 1) +
-  labs(
-    title = "Distribution of fT>MIC (%) at Steady State",
-    subtitle = paste("Target =", target_ftmic, "%, simulated for", N, "patients"),
-    x = "fT>MIC (%)",
-    y = "Count"
+  # BACKGROUND: eGFR ≤ 96.5 (draw first)
+  geom_histogram(
+    data = subset(ft_by_id, eGFR_group == "≤ 96.5"),
+    bins = 50, position = "identity",
+    fill = "blue", color = "white", alpha = 1
   ) +
+  # FOREGROUND: eGFR > 96.5 (draw second)
+  geom_histogram(
+    data = subset(ft_by_id, eGFR_group == "> 96.5"),
+    bins = 50, position = "identity",
+    fill = "red", color = "white", alpha = 1
+  ) +
+  geom_vline(xintercept = target_ftmic, color = "darkorange",
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Distribution of fT>MIC (%) at Steady State by eGFR Group",
+    subtitle = paste("Target =", target_ftmic, "%; simulated for", N, "patients"),
+    x = "fT>MIC (%)",
+    y = "Count",
+    fill = "eGFR group"
+   ) +
   theme_minimal()
 
+```
+
+```{r}
+ptas_by_group <- ft_by_id %>%
+  summarize(
+    n = n(),
+    mean_ftmic = mean(ft_mic),
+    PTA = mean(ft_mic >= target_ftmic) * 100,
+    .by = eGFR_group
+  )
+
+ptas_by_group
+```
+
+```{r}
+# --- Identify the same patients with eGFR > 96.5 ---
+high_ids <- idata %>% filter(eGFR > 96.5) %>% pull(ID)
+idata_hi <- idata %>% filter(ID %in% high_ids)
+
+# --- Dosing event: 4.0 g over 0.5 h, q24h ---
+e4000 <- ev(
+  amt  = 4000,        # mg
+  ii   = tau,         # hours
+  addl = n_pre_doses, # pre-doses before the last interval
+  rate = 4000 / 0.5   # mg/h (0.5 h infusion)
+)
+
+# --- Simulate to include steady-state history ---
+out_hi4000 <- mod %>%
+  idata_set(idata_hi) %>%
+  ev(e4000) %>%
+  mrgsim(end = end_time, delta = delta) %>%
+  as_tibble() %>%
+  mutate(
+    Cfree    = IPRED * fu,
+    aboveMIC = Cfree > MIC
+  )
+
+# --- Slice the last dosing interval (steady state) ---
+out_ss_hi4000 <- out_hi4000 %>%
+  filter(time > t_start_ss, time <= t_end_ss)
+
+# --- fT>MIC (%) for eGFR > 96.5 at 4.0 g ---
+ft_hi4000 <- out_ss_hi4000 %>%
+  group_by(ID) %>%
+  summarize(ft_mic = mean(aboveMIC) * 100, .groups = "drop") %>%
+  left_join(idata_hi %>% select(ID, eGFR), by = "ID") %>%
+  mutate(dose = "4.0 g")
+
+# --- Extract the original 2.0 g results for the same subgroup (from ft_by_id) ---
+ft_hi2000 <- ft_by_id %>%
+  filter(eGFR_group == "> 96.5") %>%
+  mutate(dose = "2.0 g")
+
+# --- PTA summary (70%) for eGFR > 96.5 at both doses ---
+ptas_hi <- bind_rows(
+  ft_hi2000 %>% select(ID, ft_mic, dose),
+  ft_hi4000 %>% select(ID, ft_mic, dose)
+) %>%
+  group_by(dose) %>%
+  summarize(
+    n              = n(),
+    mean_ftmic     = mean(ft_mic),
+    median_ftmic   = median(ft_mic),
+    sd_ftmic       = sd(ft_mic),
+    p25            = quantile(ft_mic, 0.25),
+    p75            = quantile(ft_mic, 0.75),
+    PTA            = mean(ft_mic >= target_ftmic) * 100,  # % achieving target
+    .groups = "drop"
+  )
+
+ptas_hi
+```
+
+```{r}
+N_hi <- length(high_ids)
+
+ggplot(bind_rows(
+  ft_hi2000 %>% mutate(Dose = "2.0 g"),
+  ft_hi4000 %>% mutate(Dose = "4.0 g")
+), aes(x = ft_mic, fill = Dose)) +
+  geom_histogram(bins = 50, position = "identity", alpha = 0.6, color = "white") +
+  geom_vline(xintercept = target_ftmic, color = "darkorange", linetype = "dashed", size = 1) +
+  scale_fill_manual(values = c("2.0 g" = "red", "4.0 g" = "purple")) +
+  labs(
+    title = "fT>MIC (%) at Steady State — eGFR > 96.5",
+    subtitle = paste("Target =", target_ftmic, "%; N =", N_hi, "patients"),
+    x = "fT>MIC (%)",
+    y = "Count",
+    fill = "Dose"
+  ) +
+  theme_minimal()
 ```
 

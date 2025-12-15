@@ -205,5 +205,8 @@ ggplot(fu_by_time, aes(x = fu)) +
 
 ```{r}
 summary(CEF$eGFR)
+
+ggplot(CEF, aes(x = eGFR)) +
+  geom_histogram()
 ```
 

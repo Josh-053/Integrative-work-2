@@ -33,9 +33,9 @@ mod %>%
 
 # Parameters
 ```{r}
-MIC <- 0.5      # mg/L (typical for S. pneumoniae)
-fu  <- 0.9      # fraction unbound
-tau <- 24       # dosing interval (hours)
+MIC <- 0.5            # mg/L (typical for S. pneumoniae)
+fu  <- 0.1560871      # fraction unbound, median of Phase 2 study
+tau <- 24             # dosing interval (hours)
 ```
 
 # Simulate one interval at steady state
@@ -69,6 +69,7 @@ e2 <- ev(amt = 2000, cmt = 1,
          addl = 1) 
 e <-c(e1,e2)
 ```
+
 ```{r}
 mod %>% 
   ev(e) %>% 
@@ -84,7 +85,7 @@ mod <- update(mod, sigma = matrix(0.03294046, nrow = 1))
 smat(mod) 
 
 mod %>% 
-  ev(amt = 300) %>% 
+  ev(amt = 2000) %>% 
   mrgsim(delta=0.05) %>% 
   plot(DV~time,
        col = "darkred",
@@ -95,15 +96,16 @@ mod %>%
 ```
 ```{r}
 mod %>%
-  ev(amt = 300) %>% 
-  mrgsim(nid = 1,
+  ev(amt = 2000) %>% 
+  mrgsim(nid = 20,
          delta=0.05) -> res
 
 ggplot(as.data.frame(res), 
-       aes(x = time, y = DV)) +
-  geom_line() +
+       aes(x = time, y = DV,
+           color = as.factor(ID))) +
+  geom_line(size = 0.3) +
   labs(x = "Time (h)", 
        y = "Plasma concentration (mg/L)", 
-       title = "Simulated Pk profiles (ID: 1)") 
+       title = "Simulated Pk profiles (for one patient)") 
 
 ```

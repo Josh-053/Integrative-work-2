@@ -203,3 +203,7 @@ ggplot(fu_by_time, aes(x = fu)) +
   geom_histogram()
 ```
 
+```{r}
+summary(CEF$eGFR)
+```
+

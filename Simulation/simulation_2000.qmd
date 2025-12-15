@@ -1,0 +1,154 @@
+---
+title: "simulation2"
+format: html
+---
+
+```{r packages}
+#| echo: true
+
+if (!require("pacman")) {
+  install.packages("pacman")
+  library(pacman)}
+
+pacman::p_load(mrgsolve,
+               ggplot2,
+               tidyverse,
+               patchwork)
+```
+
+```{r}
+#| echo: false
+mod <- mread("run03")
+```
+
+```{r}
+set.seed(123)
+
+# -----------------------------
+# Compile the mrgsolve model
+# -----------------------------
+# Ensure run03.cpp is in the working directory (or provide a path)
+mod <- mread("run03", ".")
+
+# -----------------------------
+# Parameters
+# -----------------------------
+MIC <- 0.5            # mg/L
+fu  <- 0.1560871      # fraction unbound
+tau <- 24             # dosing interval (hours) => q24h
+delta <- 0.01         # output time-step (hours)
+n_pre_doses <- 13     # pre-doses to approach steady state
+N <- 2000             # number of individuals
+target_ftmic <- 70    # % target for attainment
+
+# -----------------------------
+# Dosing: 2 g over 0.5 h, q24h
+# -----------------------------
+e <- ev(
+  amt  = 2000,           # mg
+  ii   = tau,            # hours
+  addl = n_pre_doses,    # pre-doses before the last interval
+  rate = 2000 / 0.5      # mg/h (0.5 h infusion)
+)
+
+# -----------------------------
+# Inter-individual variability (ETAs) and covariates
+# -----------------------------
+# From $OMEGA (diagonal) in run03.cpp: variances 0.0991 (CL), 0.28 (V1)
+sd_eta1 <- sqrt(0.0991)  # ETA(1) on CL
+sd_eta2 <- sqrt(0.28)    # ETA(2) on V1
+
+# ---- Phase 2 eGFR quartiles ----
+eGFR_q1     <- 69.14
+eGFR_median <- 83.67
+eGFR_q3     <- 100.84
+
+vary_eGFR <- TRUE
+
+# Sample eGFR uniformly within IQR (robust, non-parametric)
+if (vary_eGFR) {
+  eGFR_vals <- runif(N, min = eGFR_q1, max = eGFR_q3)
+} else {
+  eGFR_vals <- rep(eGFR_median, N)
+}
+
+idata <- tibble(
+  ID    = seq_len(N),
+  ETA1  = rnorm(N, 0, sd_eta1),
+  ETA2  = rnorm(N, 0, sd_eta2),
+  eGFR  = eGFR_vals
+)
+
+# -----------------------------
+# Simulate long enough to include steady-state history
+# -----------------------------
+end_time <- (n_pre_doses + 1) * tau
+
+out <- mod %>%
+  idata_set(idata) %>%
+  ev(e) %>%
+  mrgsim(end = end_time, delta = delta) %>%
+  as_tibble()
+
+# -----------------------------
+# Free concentrations and MIC flag (model captures IPRED = CENT/V1)
+# -----------------------------
+out <- out %>%
+  mutate(
+    Cfree    = IPRED * fu,
+    aboveMIC = Cfree > MIC
+  )
+
+# -----------------------------
+# Slice the last dosing interval (steady state)
+# -----------------------------
+t_start_ss <- n_pre_doses * tau
+t_end_ss   <- (n_pre_doses + 1) * tau
+
+out_ss <- out %>%
+  filter(time > t_start_ss, time <= t_end_ss)
+
+# -----------------------------
+# fT>MIC per individual (% of interval above MIC)
+# Regular grid: mean(aboveMIC) * 100
+# -----------------------------
+ft_by_id <- out_ss %>%
+  group_by(ID) %>%
+  summarize(ft_mic = mean(aboveMIC) * 100, .groups = "drop")
+
+# -----------------------------
+# Summary across 5,000 subjects
+# -----------------------------
+summary_ft <- ft_by_id %>%
+  summarize(
+    n      = n(),
+    mean   = mean(ft_mic),
+    median = median(ft_mic),
+    sd     = sd(ft_mic),
+    p05    = quantile(ft_mic, 0.05),
+    p25    = quantile(ft_mic, 0.25),
+    p75    = quantile(ft_mic, 0.75),
+    p95    = quantile(ft_mic, 0.95),
+    PTA    = mean(ft_mic >= target_ftmic) * 100   # % achieving target
+  )
+
+summary_ft
+```
+
+```{r}
+
+target_ftmic <- 70  # adjust if needed
+
+ggplot(ft_by_id, aes(x = ft_mic)) +
+  geom_histogram(bins = 50, color = "white", fill = "#2C7FB8") +
+  geom_vline(xintercept = target_ftmic, color = "#D95F0E", linetype = "dashed", size = 1) +
+  labs(
+    title = "Distribution of fT>MIC (%) at Steady State",
+    subtitle = paste("Target =", target_ftmic, "%, simulated for", N, "patients"),
+    x = "fT>MIC (%)",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+```
+

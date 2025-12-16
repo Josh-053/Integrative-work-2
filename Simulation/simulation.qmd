@@ -109,3 +109,197 @@ ggplot(as.data.frame(res),
        title = "Simulated Pk profiles (for one patient)") 
 
 ```
+# Distribution of ft>MIC across MIC's for normal & ICU patients
+
+#Regimen: 2 g q24h, 0.5 h infusion, simulate to 336 h(2weeks)
+```{r}
+evobj <- ev(amt = 2000, ii = 24, addl = 13, rate = 2000/0.5)
+```
+
+
+```{r}
+# Parameters
+MICs <- c(0.25, 0.5, 1, 2)     # mg/L (typical for S. pneumoniae)
+fu  <- 0.1560871      # fraction unbound
+tau <- 24       # dosing interval (hours)
+fu   <- 0.9                 # fraction unbound
+N    <- 1000                # virtual ICU patients
+delta <- 0.1               # hours; resolution
+target_thr <- 70            # fT>MIC target threshold (%)
+
+#compute fT>MIC
+# Robust fT>MIC calculation over last dosing interval
+calc_ftmic <- function(df, MIC, fu, tau) {
+  # df must contain columns: time, IPRED
+  df <- df %>% arrange(time)
+  t_end <- max(df$time, na.rm = TRUE)
+  df_int <- df %>% filter(time > t_end - tau)
+  
+  df_int <- df_int %>%
+    mutate(
+      Cfree = IPRED * fu,
+      dt = lead(time) - time
+    )
+#fill missing dt (last row) with median step size
+  dt_fill <- df_int$dt[!is.na(df_int$dt)]
+  if (length(dt_fill) == 0) dt_fill <- tau
+  fill_value <- median(dt_fill)
+  df_int$dt[is.na(df_int$dt)] <- fill_value
+
+  time_above <- sum(df_int$dt[df_int$Cfree > MIC], na.rm = TRUE)
+  pmin(100, (time_above / tau) * 100)
+}
+```
+
+
+
+```{r}
+# Function to simulate one group with sampled eGFR
+simulate_group <- function(mod, evobj, MICs, fu, tau, N, egfr_range, group_label) {
+  idata <- tibble(ID = 1:N, eGFR = runif(N, min = min(egfr_range), max = max(egfr_range)))
+  out <- mrgsim(mod, ev = evobj, idata = idata, end = 336, delta = 0.1)
+  raw <- as.data.frame(out)
+  df <- raw %>% left_join(idata, by = "ID")  # ensure eGFR is present
+
+  bind_rows(lapply(MICs, function(MIC) {
+    ft_by_id <- df %>%
+      group_by(ID, eGFR) %>%
+      summarise(
+        ft_mic = calc_ftmic(select(cur_data(), time, IPRED), MIC, fu, tau),
+        .groups = "drop"
+      ) %>%
+      mutate(group = group_label, MIC = MIC)
+    ft_by_id
+  }))
+}
+```
+
+```{r}
+ # Run for ICU (≥96.5) and Normal (<96.5)
+ft_all <- bind_rows(
+  simulate_group(mod, evobj, MICs, fu, tau, N, egfr_range = c(100,150), group_label = "ICU_eGFR>=96.5"),
+  simulate_group(mod, evobj, MICs, fu, tau, N, egfr_range = c(60,90), group_label = "Normal_eGFR<96.5")
+)
+```
+```{r}
+ft_summary <- ft_all %>%
+  group_by(group, MIC) %>%
+  summarise(
+    median = median(ft_mic),
+    p05    = quantile(ft_mic, 0.05),
+    p95    = quantile(ft_mic, 0.95),
+    .groups = "drop"
+  )
+print(ft_summary)
+```
+```{r}
+# --- Plot distributions for each MIC ---
+ggplot(ft_all, aes(x = ft_mic, fill = group)) +
+  geom_density(alpha = 0.4) +
+  facet_wrap(~MIC, scales = "free") +
+  labs(x = "fT>MIC (%)", y = "Density",
+       title = "Distribution of fT>MIC by eGFR group across MICs") +
+  theme_minimal()
+```
+
+#To plot PTA against MIC
+```{r}
+MICs <- c(0.25, 0.5, 1, 2, 4, 8)
+target_ftmic <- 70
+fu <- 0.1560871
+tau <- 24
+N <- 1000
+
+calc_pta <- function(mod, evobj, dose, MICs, fu, tau, N, egfr_range) {
+  idata <- tibble(ID = 1:N, eGFR = runif(N, egfr_range[1], egfr_range[2]))
+  evobj <- ev(amt = dose, ii = 24, addl = 13, rate = dose/0.5)
+  out <- mrgsim(mod, ev = evobj, idata = idata, end = 336, delta = 0.1)
+  df <- as.data.frame(out) %>% left_join(idata, by = "ID")
+
+  bind_rows(lapply(MICs, function(MIC) {
+    ft_by_id <- df %>%
+      group_by(ID) %>%
+      summarise(ft = calc_ftmic(select(cur_data(), time, IPRED), MIC, fu, tau), .groups = "drop")
+    tibble(Dose = dose, MIC = MIC, PTA = mean(ft_by_id$ft >= target_ftmic) * 100)
+  }))
+}
+
+pta_df <- bind_rows(
+  calc_pta(mod, evobj, 2000, MICs, fu, tau, N, c(100,150)),
+  calc_pta(mod, evobj, 3000, MICs, fu, tau, N, c(100,150))
+)
+```
+
+```{r}
+ggplot(pta_df, aes(x = MIC, y = PTA, color = factor(Dose))) +
+  geom_line() +
+  geom_point() +
+  geom_hline(yintercept = 90, linetype = "dashed", color = "gray50") +
+  scale_color_discrete(name = "Regimen", labels = c("2000 mg q24h", "3000 mg q24h")) +
+  labs(title = "PTA vs MIC in ICU patients (eGFR ≥ 96.5)",
+       x = "MIC (mg/L)", y = "PTA (%)") +
+  theme_minimal()
+```
+
+#To plot PTA against duration of therapy
+```{r}
+
+# Parameters
+MIC <- 0.5        # pick one MIC to evaluate PTA over time
+target_ftmic <- 70
+fu   <- 0.1560871
+tau  <- 24
+N    <- 1000
+
+# Helper: cumulative fT>MIC up to each time point
+calc_ftmic_time <- function(df, MIC, fu, tau) {
+  df %>%
+    arrange(time) %>%
+    mutate(
+      Cfree = IPRED * fu,
+      aboveMIC = Cfree > MIC,
+      dt = c(diff(time), 0),
+      inc_time = dt * aboveMIC,
+      cum_time = cumsum(inc_time),
+      ft_pct = (cum_time / time) * 100
+    )
+}
+
+# Function to simulate one regimen
+simulate_regimen <- function(dose, MIC, fu, tau, N, egfr_range) {
+  idata <- tibble(ID = 1:N, eGFR = runif(N, egfr_range[1], egfr_range[2]))
+  evobj <- ev(amt = dose, ii = 24, addl = 14, rate = dose/0.5)
+  out <- mrgsim(mod, ev = evobj, idata = idata, end = 363, delta = 0.5)
+  df <- as.data.frame(out) %>% left_join(idata, by = "ID")
+
+  # compute cumulative fT>MIC for each patient
+  ft_time <- df %>%
+    group_by(ID) %>%
+    group_modify(~ calc_ftmic_time(.x, MIC, fu, tau)) %>%
+    ungroup()
+
+  # at each time, compute PTA = % patients with ft_pct >= target
+  pta_time <- ft_time %>%
+    group_by(time) %>%
+    summarise(PTA = mean(ft_pct >= target_ftmic) * 100, .groups = "drop") %>%
+    mutate(Dose = paste0(dose, " mg"))
+  pta_time
+}
+
+# --- Run for ICU patients (eGFR 100–150) ---
+pta2000 <- simulate_regimen(2000, MIC, fu, tau, N, c(100,150))
+pta3000 <- simulate_regimen(3000, MIC, fu, tau, N, c(100,150))
+
+pta_all <- bind_rows(pta2000, pta3000)
+
+```
+
+```{r}
+# --- Plot PTA vs time ---
+ggplot(pta_all, aes(x = time, y = PTA, color = Dose)) +
+  geom_line(size = 1) +
+  labs(title = "PTA vs Therapy Duration (ICU patients, MIC = 0.5 mg/L)",
+       x = "Time (h)", y = "PTA (%)") +
+  theme_minimal()
+
+```

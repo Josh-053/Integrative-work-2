@@ -1,265 +1,324 @@
 ---
-title: "simulation2"
+title: "Untitled"
 format: html
 ---
 
-```{r packages}
-#| echo: true
-
-if (!require("pacman")) {
-  install.packages("pacman")
-  library(pacman)}
-
-pacman::p_load(mrgsolve,
-               ggplot2,
-               tidyverse,
-               patchwork)
-```
+# ----------------------------------------
+# Libraries
+# ----------------------------------------
 
 ```{r}
-#| echo: false
+library(mrgsolve)
+library(tidyverse)
+library(ggplot2)
+```
+
+# ----------------------------------------
+# Global parameters
+# ----------------------------------------
+```{r}
 mod <- mread("run03")
+
+MICs       <- c(0.25, 0.5, 1, 2)   # mg/L
+fu         <- 0.1560871            # fraction unbound
+N_TOTAL    <- 2000                  # total cohort size
+end_time   <- 336                   # hours (2 weeks)
+delta      <- 0.1                   # simulation grid in hours
+target_thr <- 70                    # fT>MIC target threshold (%)
+
+# Group bounds (preserve upper bound for high eGFR group)
+egfr_cut   <- 96.5
+egfr_hi    <- c(96.5000000000001, 150) # upper bound preserved at 150
+egfr_lo    <- c(51.30, 96.5)
 ```
 
+# ----------------------------------------
+# Empirical (non-Gaussian) eGFR sampler from Phase 2 summary quantiles
+# Uses linear interpolation of the quantile function at p = 0, 0.25, 0.5, 0.75, 1
+# ----------------------------------------
 ```{r}
-set.seed(123)
+# Phase 2 trial summary stats
+phase2_min   <- 51.30
+phase2_q1    <- 69.14
+phase2_median<- 83.67
+phase2_mean  <- 84.93  # not used directly
+phase2_q3    <- 100.84
+phase2_max   <- 150    # originally from dataset: 123.79
 
-# -----------------------------
-# Compile the mrgsolve model
-# -----------------------------
-# Ensure run03.cpp is in the working directory (or provide a path)
-mod <- mread("run03", ".")
-
-# -----------------------------
-# Parameters
-# -----------------------------
-MIC <- 0.5            # mg/L
-fu  <- 0.1560871      # fraction unbound
-tau <- 24             # dosing interval (hours) => q24h
-delta <- 0.01         # output time-step (hours)
-n_pre_doses <- 13     # pre-doses to approach steady state
-N <- 2000             # number of individuals
-target_ftmic <- 70    # % target for attainment
-
-# -----------------------------
-# Dosing: 2 g over 0.5 h, q24h
-# -----------------------------
-e <- ev(
-  amt  = 2000,           # mg
-  ii   = tau,            # hours
-  addl = n_pre_doses,    # pre-doses before the last interval
-  rate = 2000 / 0.5      # mg/h (0.5 h infusion)
-)
-
-# -----------------------------
-# Inter-individual variability (ETAs) and covariates
-# -----------------------------
-# From $OMEGA (diagonal) in run03.cpp: variances 0.0991 (CL), 0.28 (V1)
-sd_eta1 <- sqrt(0.0991)  # ETA(1) on CL
-sd_eta2 <- sqrt(0.28)    # ETA(2) on V1
-
-# ---- Phase 2 eGFR range ----
-eGFR_min    <- 51.30
-eGFR_median <- 83.67
-eGFR_max    <- 123.79
-
-vary_eGFR <- TRUE
-
-# Sample eGFR uniformly within IQR (robust, non-parametric)
-if (vary_eGFR) {
-  eGFR_vals <- runif(N, min = eGFR_min, max = eGFR_max)
-} else {
-  eGFR_vals <- rep(eGFR_median, N)
+sample_eGFR_empirical <- function(N, min, q1, median, q3, max) {
+  p <- c(0, 0.25, 0.5, 0.75, 1)
+  x <- c(min, q1, median, q3, max)
+  u <- runif(N)
+  as.numeric(approx(x = p, y = x, xout = u, method = "linear", ties = "ordered")$y)
 }
+```
 
-idata <- tibble(
-  ID    = seq_len(N),
-  ETA1  = rnorm(N, 0, sd_eta1),
-  ETA2  = rnorm(N, 0, sd_eta2),
-  eGFR  = eGFR_vals
+# ----------------------------------------
+# Build single cohort of 2000 patients from the empirical distribution
+# Cap values in the high-eGFR group at the preserved upper bound (150)
+# ----------------------------------------
+```{r}
+set.seed(123) # reproducibility
+
+# Sample eGFR from empirical (non-Gaussian) distribution
+eGFR_vec <- sample_eGFR_empirical(N_TOTAL, phase2_min, phase2_q1, phase2_median, phase2_q3, phase2_max)
+
+# Assign groups by cutoff and cap high group at 150 to preserve upper bound
+group_flag <- if_else(eGFR_vec > egfr_cut, "eGFR > 96.5", "eGFR ≤ 96.5")
+eGFR_vec   <- if_else(group_flag == "eGFR > 96.5", pmin(eGFR_vec, egfr_hi[2]), eGFR_vec)
+
+# Build idata with IDs and eGFR
+data_all <- tibble(ID = seq_len(N_TOTAL), eGFR = eGFR_vec, group_flag = group_flag)
+```
+
+# ----------------------------------------
+# Helper: rolling fT>MIC over the past tau hours at each time t
+# df must have columns: time, IPRED
+# Returns tibble(time, ft_mic_t) in %
+# ----------------------------------------
+```{r}
+ft_over_time <- function(df, MIC, fu, tau) {
+  df <- df %>% arrange(time)
+
+  df <- df %>%
+    mutate(
+      Cfree    = IPRED * fu,
+      t_next   = dplyr::lead(time),
+      t_end    = max(time, na.rm = TRUE),
+      t_seg_end = dplyr::if_else(is.na(t_next), t_end, t_next),
+      dt       = pmax(0, t_seg_end - time),
+      above    = Cfree > MIC
+    )
+
+  times     <- df$time
+  seg_start <- df$time
+  seg_end   <- df$t_seg_end
+  seg_above <- df$above
+  n         <- nrow(df)
+
+  ft_t <- numeric(n)
+  for (i in seq_len(n)) {
+    t <- times[i]
+    window_start <- t - tau
+    window_end   <- t
+    overlap <- pmin(seg_end, window_end) - pmax(seg_start, window_start)
+    overlap <- pmax(0, overlap)
+    ft_t[i] <- 100 * sum(overlap[seg_above], na.rm = TRUE) / tau
+  }
+
+  tibble(time = times, ft_mic_t = pmin(100, pmax(0, ft_t)))
+}
+```
+
+# ----------------------------------------
+# Simulate one subset (by eGFR group) for one regimen; compute fT>MIC(t)
+# idata: tibble with columns ID and eGFR (subset of data_all)
+# ----------------------------------------
+```{r}
+simulate_group_ft_time <- function(mod, evobj, MICs, fu, tau, idata, group_label,
+                                   end = 336, delta = 0.1) {
+  if (nrow(idata) == 0) return(tibble())
+
+  out   <- mrgsim(mod, ev = evobj, idata = idata, end = end, delta = delta)
+  raw   <- as.data.frame(out)
+  df    <- raw %>% dplyr::left_join(idata, by = "ID")  # keep eGFR with trajectory
+
+  dplyr::bind_rows(lapply(MICs, function(MIC) {
+    per_id <- df %>%
+      dplyr::group_by(ID, eGFR) %>%
+      dplyr::group_modify(function(d, key) {
+        res <- ft_over_time(dplyr::select(d, time, IPRED), MIC = MIC, fu = fu, tau = tau)
+        tibble(time = d$time, ft_mic_t = res$ft_mic_t)  # align length
+      }) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(group = group_label, MIC = MIC)
+    per_id
+  }))
+}
+```
+
+# ----------------------------------------
+# Build regimen event (ev) and assign the 2000-patient cohort
+# to the designated group(s) for each dosing regimen
+# ----------------------------------------
+```{r}
+simulate_regimen_ft <- function(mod, label, amt_mg, ii_h, inf_h = 0.5,
+                                MICs, fu, end = 336, delta = 0.1,
+                                data_all,
+                                include_hi = TRUE, include_lo = TRUE) {
+  rate_mgph <- amt_mg / inf_h
+  addl      <- ceiling(end / ii_h) - 1  # doses after the first to span end
+  evobj     <- ev(amt = amt_mg, ii = ii_h, addl = addl, rate = rate_mgph)
+
+  reg_blocks <- list()
+  if (include_hi) {
+    idata_hi <- data_all %>% filter(group_flag == "eGFR > 96.5") %>% select(ID, eGFR)
+    reg_blocks[["hi"]] <- simulate_group_ft_time(
+      mod, evobj, MICs, fu, tau = ii_h,
+      idata = idata_hi, group_label = "eGFR > 96.5",
+      end = end, delta = delta
+    )
+  }
+  if (include_lo) {
+    idata_lo <- data_all %>% filter(group_flag == "eGFR ≤ 96.5") %>% select(ID, eGFR)
+    reg_blocks[["lo"]] <- simulate_group_ft_time(
+      mod, evobj, MICs, fu, tau = ii_h,
+      idata = idata_lo, group_label = "eGFR ≤ 96.5",
+      end = end, delta = delta
+    )
+  }
+
+  reg_data <- dplyr::bind_rows(reg_blocks) %>%
+    dplyr::mutate(
+      regimen    = label,
+      dose_mg    = amt_mg,
+      ii_h       = ii_h,
+      infusion_h = inf_h
+    )
+
+  reg_data
+}
+```
+
+# ----------------------------------------
+# Run: selected treatment plans per eGFR inclusion rule
+# Uses the same 2000-patient cohort for all regimens
+# Designated assignment: q24h uses BOTH groups; others use only high-eGFR
+# ----------------------------------------
+```{r}
+ft_time_all <- dplyr::bind_rows(
+  # BOTH groups for 2000 mg q24h
+  simulate_regimen_ft(mod,
+                      label = "2000 mg q24h",
+                      amt_mg = 2000, ii_h = 24, inf_h = 0.5,
+                      MICs = MICs, fu = fu, end = end_time, delta = delta,
+                      data_all = data_all,
+                      include_hi = TRUE, include_lo = TRUE),
+
+  # Only eGFR > 96.5 for 2000 mg q12h
+  simulate_regimen_ft(mod,
+                      label = "2000 mg q12h",
+                      amt_mg = 2000, ii_h = 12, inf_h = 0.5,
+                      MICs = MICs, fu = fu, end = end_time, delta = delta,
+                      data_all = data_all,
+                      include_hi = TRUE, include_lo = FALSE),
+
+  # Only eGFR > 96.5 for 3000 mg q24h
+  simulate_regimen_ft(mod,
+                      label = "3000 mg q24h",
+                      amt_mg = 3000, ii_h = 24, inf_h = 0.5,
+                      MICs = MICs, fu = fu, end = end_time, delta = delta,
+                      data_all = data_all,
+                      include_hi = TRUE, include_lo = FALSE),
+
+  # Only eGFR > 96.5 for 4000 mg q24h
+  simulate_regimen_ft(mod,
+                      label = "4000 mg q24h",
+                      amt_mg = 4000, ii_h = 24, inf_h = 0.5,
+                      MICs = MICs, fu = fu, end = end_time, delta = delta,
+                      data_all = data_all,
+                      include_hi = TRUE, include_lo = FALSE)
 )
-
-# -----------------------------
-# Simulate long enough to include steady-state history
-# -----------------------------
-end_time <- (n_pre_doses + 1) * tau
-
-out <- mod %>%
-  idata_set(idata) %>%
-  ev(e) %>%
-  mrgsim(end = end_time, delta = delta) %>%
-  as_tibble()
-
-# -----------------------------
-# Free concentrations and MIC flag (model captures IPRED = CENT/V1)
-# -----------------------------
-out <- out %>%
-  mutate(
-    Cfree    = IPRED * fu,
-    aboveMIC = Cfree > MIC
-  )
-
-# -----------------------------
-# Slice the last dosing interval (steady state)
-# -----------------------------
-t_start_ss <- n_pre_doses * tau
-t_end_ss   <- (n_pre_doses + 1) * tau
-
-out_ss <- out %>%
-  filter(time > t_start_ss, time <= t_end_ss)
-
-# -----------------------------
-# fT>MIC per individual (% of interval above MIC)
-# Regular grid: mean(aboveMIC) * 100
-# -----------------------------
-ft_by_id <- out_ss %>%
-  group_by(ID) %>%
-  summarize(ft_mic = mean(aboveMIC) * 100, .groups = "drop")
-
-
-# Join eGFR to the fT>MIC summary per ID and create a grouping variable
-ft_by_id <- ft_by_id %>%
-  left_join(idata %>% select(ID, eGFR), by = "ID") %>%
-  mutate(
-    eGFR_group = if_else(eGFR <= 96.5, "≤ 96.5", "> 96.5"))
-
-# -----------------------------
-# Summary across 5,000 subjects
-# -----------------------------
-summary_ft <- ft_by_id %>%
-  summarize(
-    n      = n(),
-    mean   = mean(ft_mic),
-    median = median(ft_mic),
-    sd     = sd(ft_mic),
-    p05    = quantile(ft_mic, 0.05),
-    p25    = quantile(ft_mic, 0.25),
-    p75    = quantile(ft_mic, 0.75),
-    p95    = quantile(ft_mic, 0.95),
-    PTA    = mean(ft_mic >= target_ftmic) * 100   # % achieving target
-  )
-
-summary_ft
 ```
 
+# ----------------------------------------
+# Summaries for plotting: median + 5th/95th percentiles per time
+# ----------------------------------------
 ```{r}
-target_ftmic <- 70  # adjust if needed
-
-ggplot(ft_by_id, aes(x = ft_mic)) +
-  # BACKGROUND: eGFR ≤ 96.5 (draw first)
-  geom_histogram(
-    data = subset(ft_by_id, eGFR_group == "≤ 96.5"),
-    bins = 50, position = "identity",
-    fill = "blue", color = "white", alpha = 1
-  ) +
-  # FOREGROUND: eGFR > 96.5 (draw second)
-  geom_histogram(
-    data = subset(ft_by_id, eGFR_group == "> 96.5"),
-    bins = 50, position = "identity",
-    fill = "red", color = "white", alpha = 1
-  ) +
-  geom_vline(xintercept = target_ftmic, color = "darkorange",
-             linetype = "dashed", size = 1) +
-  labs(
-    title = "Distribution of fT>MIC (%) at Steady State by eGFR Group",
-    subtitle = paste("Target =", target_ftmic, "%; simulated for", N, "patients"),
-    x = "fT>MIC (%)",
-    y = "Count",
-    fill = "eGFR group"
-   ) +
-  theme_minimal()
-
-```
-
-```{r}
-ptas_by_group <- ft_by_id %>%
-  summarize(
-    n = n(),
-    mean_ftmic = mean(ft_mic),
-    PTA = mean(ft_mic >= target_ftmic) * 100,
-    .by = eGFR_group
-  )
-
-ptas_by_group
-```
-
-```{r}
-# --- Identify the same patients with eGFR > 96.5 ---
-high_ids <- idata %>% filter(eGFR > 96.5) %>% pull(ID)
-idata_hi <- idata %>% filter(ID %in% high_ids)
-
-# --- Dosing event: 4.0 g over 0.5 h, q24h ---
-e4000 <- ev(
-  amt  = 4000,        # mg
-  ii   = tau,         # hours
-  addl = n_pre_doses, # pre-doses before the last interval
-  rate = 4000 / 0.5   # mg/h (0.5 h infusion)
-)
-
-# --- Simulate to include steady-state history ---
-out_hi4000 <- mod %>%
-  idata_set(idata_hi) %>%
-  ev(e4000) %>%
-  mrgsim(end = end_time, delta = delta) %>%
-  as_tibble() %>%
-  mutate(
-    Cfree    = IPRED * fu,
-    aboveMIC = Cfree > MIC
-  )
-
-# --- Slice the last dosing interval (steady state) ---
-out_ss_hi4000 <- out_hi4000 %>%
-  filter(time > t_start_ss, time <= t_end_ss)
-
-# --- fT>MIC (%) for eGFR > 96.5 at 4.0 g ---
-ft_hi4000 <- out_ss_hi4000 %>%
-  group_by(ID) %>%
-  summarize(ft_mic = mean(aboveMIC) * 100, .groups = "drop") %>%
-  left_join(idata_hi %>% select(ID, eGFR), by = "ID") %>%
-  mutate(dose = "4.0 g")
-
-# --- Extract the original 2.0 g results for the same subgroup (from ft_by_id) ---
-ft_hi2000 <- ft_by_id %>%
-  filter(eGFR_group == "> 96.5") %>%
-  mutate(dose = "2.0 g")
-
-# --- PTA summary (70%) for eGFR > 96.5 at both doses ---
-ptas_hi <- bind_rows(
-  ft_hi2000 %>% select(ID, ft_mic, dose),
-  ft_hi4000 %>% select(ID, ft_mic, dose)
-) %>%
-  group_by(dose) %>%
-  summarize(
-    n              = n(),
-    mean_ftmic     = mean(ft_mic),
-    median_ftmic   = median(ft_mic),
-    sd_ftmic       = sd(ft_mic),
-    p25            = quantile(ft_mic, 0.25),
-    p75            = quantile(ft_mic, 0.75),
-    PTA            = mean(ft_mic >= target_ftmic) * 100,  # % achieving target
+ft_time_summary <- ft_time_all %>%
+  dplyr::group_by(regimen, group, MIC, time) %>%
+  dplyr::summarise(
+    median = median(ft_mic_t, na.rm = TRUE),
+    p05    = quantile(ft_mic_t, 0.05, na.rm = TRUE),
+    p95    = quantile(ft_mic_t, 0.95, na.rm = TRUE),
     .groups = "drop"
   )
+```
 
-ptas_hi
+# ----------------------------------------
+# Optional: spaghetti plot for a single MIC across regimens (variability view)
+# ----------------------------------------
+```{r}
+mic_to_show <- 0.5
+
+# Filter: keep all regimens for high eGFR, plus 2000 mg q24h for low eGFR
+ft_spaghetti_sel <- ft_time_all %>%
+  dplyr::filter(
+    MIC == mic_to_show,
+    (group == "eGFR > 96.5"))
+
+# One graph, colored by (regimen + eGFR label), showing population median lines
+ggplot(ft_spaghetti_sel,
+       aes(x = time, y = ft_mic_t,
+           group = regimen, color = regimen)) +
+  stat_summary(fun = median, geom = "line", size = 1.0) +
+  geom_hline(yintercept = 70, linetype = "dashed", color = "darkred", size = 1) +  # target threshold 
+  labs(
+    title = paste0(
+      "Population median fT>MIC trajectories (MIC = ", mic_to_show, " mg/L)"
+    ),
+    subtitle = paste0(length(unique(ft_spaghetti_sel$ID)), " out of ", N_TOTAL, " patients with eGFR > 96.5 mL/min/1.73 m²"),
+    x = "Time (h)",
+    y = "fT>MIC (%)",
+    color = "Dosing regimen"
+  ) +
+  theme_bw(base_size = 12) +
+  theme(legend.position = "right")
+
+ggsave("regimens_plot.png")
+```
+
+# ----------------------------------------
+# Plot: rolling fT>MIC over time
+# ----------------------------------------
+```{r}
+ft_time_summary_hi <- ft_time_summary %>%
+  filter(group == "eGFR > 96.5")
+
+ggplot(ft_time_summary_hi,
+       aes(x = time, y = median,
+           color = factor(MIC), fill = factor(MIC))) +
+  geom_ribbon(aes(ymin = p05, ymax = p95), alpha = 0.15, color = NA) +
+  geom_line(size = 0.9) +
+  facet_grid(. ~ regimen, scales = "free_y") +  # Removed group facet
+  geom_hline(yintercept = target_thr, linetype = "dashed", color = "darkred") +
+  scale_color_brewer(palette = "Dark2", name = "MIC (mg/L)") +
+  scale_fill_brewer(palette = "Dark2", name = "MIC (mg/L)") +
+  labs(
+    title = "Rolling fT>MIC (%) over time by regimen",
+    subtitle = paste0("Infusions: 0.5 h; fu = ", signif(fu, 3), "; ",
+                      length(unique(ft_spaghetti_sel$ID)), " out of ", N_TOTAL,
+                      " patients with\neGFR > 96.5 mL/min/1.73 m²; Δt = ", delta,
+                      " h; red dashed line: ", target_thr, "% threshold"),
+    x = "Time (h)",
+    y = "fT>MIC (%)"
+  ) +
+  theme_bw(base_size = 12) +
+  theme(legend.position = "top")
+
+
+ggsave("MICS_plot.png")
 ```
 
 ```{r}
-N_hi <- length(high_ids)
+# One row per subject/regimen/MIC/group at the LAST simulated timepoint
+ss_ft <- ft_time_all %>%
+  dplyr::group_by(regimen, MIC, group, ID) %>%
+  dplyr::slice_max(order_by = time, n = 1, with_ties = FALSE) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(attain = ft_mic_t >= target_thr)
 
-ggplot(bind_rows(
-  ft_hi2000 %>% mutate(Dose = "2.0 g"),
-  ft_hi4000 %>% mutate(Dose = "4.0 g")
-), aes(x = ft_mic, fill = Dose)) +
-  geom_histogram(bins = 50, position = "identity", alpha = 0.6, color = "white") +
-  geom_vline(xintercept = target_ftmic, color = "darkorange", linetype = "dashed", size = 1) +
-  scale_fill_manual(values = c("2.0 g" = "red", "4.0 g" = "purple")) +
-  labs(
-    title = "fT>MIC (%) at Steady State — eGFR > 96.5",
-    subtitle = paste("Target =", target_ftmic, "%; N =", N_hi, "patients"),
-    x = "fT>MIC (%)",
-    y = "Count",
-    fill = "Dose"
-  ) +
-  theme_minimal()
+# PTA by eGFR group
+pta_by_group <- ss_ft %>%
+  dplyr::group_by(regimen, MIC, group) %>%
+  dplyr::summarise(
+    n        = dplyr::n(),
+    attained = sum(attain),
+    pta      = attained / n * 100,
+    .groups  = "drop"
+  ) %>%
+  dplyr::arrange(regimen, MIC, group)
+
+print(pta_by_group)
 ```
 

@@ -151,7 +151,6 @@ calc_ftmic <- function(df, MIC, fu, tau) {
 ```
 
 
-
 ```{r}
 # Function to simulate one group with sampled eGFR
 simulate_group <- function(mod, evobj, MICs, fu, tau, N, egfr_range, group_label) {
@@ -192,7 +191,7 @@ ft_summary <- ft_all %>%
 print(ft_summary)
 ```
 ```{r}
-# --- Plot distributions for each MIC ---
+# Plot distributions for each MIC 
 ggplot(ft_all, aes(x = ft_mic, fill = group)) +
   geom_density(alpha = 0.4) +
   facet_wrap(~MIC, scales = "free") +
@@ -286,7 +285,7 @@ simulate_regimen <- function(dose, MIC, fu, tau, N, egfr_range) {
   pta_time
 }
 
-# --- Run for ICU patients (eGFR 100–150) ---
+# Run for ICU patients (eGFR 96.5 – 150)
 pta2000 <- simulate_regimen(2000, MIC, fu, tau, N, c(96.5000000000001,150))
 pta3000 <- simulate_regimen(3000, MIC, fu, tau, N, c(96.5000000000001,150))
 pta4000 <- simulate_regimen(4000, MIC, fu, tau, N, c(96.5000000000001,150))
@@ -295,7 +294,7 @@ pta_all <- bind_rows(pta2000, pta3000, pta4000)
 ```
 
 ```{r}
-# --- Plot PTA vs time ---
+# Plot PTA vs time
 ggplot(pta_all, aes(x = time, y = PTA, color = Dose)) +
   geom_line(size = 1) +
   labs(title = "PTA vs Therapy Duration (ICU patients, MIC = 0.5 mg/L)",

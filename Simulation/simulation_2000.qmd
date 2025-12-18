@@ -29,7 +29,7 @@ target_thr <- 70                    # fT>MIC target threshold (%)
 # Group bounds (preserve upper bound for high eGFR group)
 egfr_cut   <- 96.5
 egfr_hi    <- c(96.5000000000001, 150) # upper bound preserved at 150
-egfr_lo    <- c(51.30, 96.5)
+egfr_lo    <- c(51.30, 96.5)  # lower bound preserved at 51.30
 ```
 
 # ----------------------------------------
